@@ -2,19 +2,15 @@
 
 ## To Do
 
-### Portal stage 1 – Events, program and accounts
-- [ ] Agree the tech stack and libraries (waiting on Rick's OK)
-- [ ] Set up the app skeleton (website runs locally with a home page)
-- [ ] Design the database: organisers, users, events, sessions, sections, entries
-- [ ] Logins: organiser admin, competitor/studio, and Rick's overall admin
-- [ ] Organiser can create an event (name, dates, venue, entry open/close dates)
-- [ ] Organiser can import a program from a CSV file, then edit it online
-- [ ] Organiser can add a late entry
-- [ ] Organisers only ever see their own events (tested)
-- [ ] Realistic sample data: fake names, 4 sections, about 30 items
+### Going live (needs Rick)
+- [ ] Rick creates free Supabase and Vercel accounts so the portal gets a live web address
+- [ ] Make Rick's real account the Inspire admin on the live site
+- [ ] Set up sign-up confirmation emails and password reset on the live site
 
 ### Portal stage 2 – Entries, cart, payments and receipts
 - [ ] Competitors browse and enter events (by name, date, location, age, genre)
+- [ ] Organiser chooses what competitor accounts are allowed to do
+- [ ] Open and close entry periods automatically on the entry dates
 - [ ] Shopping cart for multiple entries
 - [ ] Square payments in test mode, with entry fees set by the organiser
 - [ ] Payment receipts
@@ -27,14 +23,20 @@
 ### Portal stage 4 – Critiques and reports
 - [ ] Upload critiques and file them in each competitor's folder
 - [ ] Upload a missing critique directly to a competitor
-- [ ] Downloadable reports and a published program
+- [ ] Downloadable reports and a printable published program
 
 ### Venue tools
 - [ ] Music playback (sound desk), offline
 - [ ] Voice critique recording (adjudicator), offline, with scores
 
+### Ideas noticed along the way
+- [ ] Organisers sign up themselves and pay Inspire a fee (how they pay is still to be decided)
+- [ ] Move a whole section earlier or later in the running order
+- [ ] Clear a whole program in one step (for re-importing a corrected CSV)
+- [ ] Invite staff by email when they don't have an account yet
+
 ## In Progress
-- [ ] Stage 1 plan and stack approval
 
 ## Done
 - [x] 2026-11-25 – Read the brief and requirements; agreed build order, many organisers, hosting, Square, and repository
+- [x] 2026-11-25 – Stage 1: website skeleton with the Inspire logo theme, logins, Inspire admin page, organisers and staff, events, sessions and sections, program CSV import, online program editing (edit, scratch, reorder, late entries), public event page, program CSV download, sample data, and automatic security tests

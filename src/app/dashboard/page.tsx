@@ -1,0 +1,62 @@
+import Link from "next/link";
+import { Suspense } from "react";
+import { requireUser } from "@/lib/auth";
+import { createSupabase } from "@/lib/supabase/server";
+import { card, h1, h2, link, muted } from "@/components/ui";
+
+async function Dashboard() {
+  const user = await requireUser();
+  const supabase = await createSupabase();
+  const { data: memberships } = await supabase
+    .from("organisation_members")
+    .select("role, organisations(id, name)")
+    .eq("user_id", user.id);
+
+  const orgs = (memberships ?? []).flatMap((m) => (m.organisations ? [{ ...m.organisations, role: m.role }] : []));
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className={h1}>Welcome{user.fullName ? `, ${user.fullName}` : ""}</h1>
+        <p className={muted}>{user.email}</p>
+      </div>
+
+      {user.isPlatformAdmin && (
+        <section className={card}>
+          <h2 className={h2}>Inspire Media admin</h2>
+          <p className="mt-1 text-sm text-slate-600">Set up organisers and give people access.</p>
+          <Link href="/admin" className={`${link} mt-2 inline-block text-sm font-medium`}>Open admin →</Link>
+        </section>
+      )}
+
+      {orgs.length > 0 && (
+        <section className="space-y-3">
+          <h2 className={h2}>Your organisations</h2>
+          <ul className="grid gap-4 sm:grid-cols-2">
+            {orgs.map((o) => (
+              <li key={o.id} className={card}>
+                <Link href={`/org/${o.id}`} className={`${link} text-lg font-semibold`}>{o.name}</Link>
+                <p className={muted}>{o.role === "owner" ? "Owner" : "Staff"}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section className={card}>
+        <h2 className={h2}>My entries</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Entering competitions, paying, uploading music and downloading critiques: coming soon.
+        </p>
+      </section>
+    </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<p className={muted}>Loading…</p>}>
+      <Dashboard />
+    </Suspense>
+  );
+}

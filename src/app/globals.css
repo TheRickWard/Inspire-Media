@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+/* Colours taken from the Inspire Dance & Fitness logo. */
+@theme {
+  --color-brand-ink: #231f20;
+  --color-brand-purple: #5e3a98;
+  --color-brand-purple-dark: #4a2d7a;
+  --color-brand-blue: #0096d6;
+  --color-brand-magenta: #e4068b;
+  --color-brand-red: #ec1c24;
+  --color-brand-orange: #f7941d;
+  --color-brand-yellow: #fff200;
+  --color-brand-green: #00a651;
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background: #f8fafc;
+  color: var(--color-brand-ink);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* The rainbow from the logo's dancer, used as a thin accent stripe. */
+.brand-rainbow {
+  background: linear-gradient(
+    90deg,
+    var(--color-brand-purple),
+    var(--color-brand-blue),
+    var(--color-brand-magenta),
+    var(--color-brand-red),
+    var(--color-brand-orange),
+    var(--color-brand-yellow),
+    var(--color-brand-green)
+  );
+}

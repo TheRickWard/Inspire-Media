@@ -23,3 +23,25 @@ Each entry records what was decided, why, and the date.
 
 ## 2026-11-25 – Code location
 **Decision:** Code lives in the GitHub repository TheRickWard/Inspire-Media.
+
+## 2026-11-25 – Building blocks (approved by Rick)
+**Decision:** Next.js + TypeScript + Tailwind for the website; Supabase for the database, logins and file storage; Vercel for hosting; Square's toolkit for payments (stage 2); PapaParse for CSV files; Zod for checking forms.
+**Why:** Rick's brief suggested Next.js. Supabase gives a database, logins and file storage in one free-to-start service, can store data in Sydney, and enforces "organisers only see their own data" inside the database itself.
+
+## 2026-11-25 – Theme from the Inspire logo
+**Decision:** The portal uses the Inspire Dance & Fitness logo and its colours: white header with the logo, a rainbow stripe, purple buttons with magenta highlights.
+**Why:** Rick asked for the logo to be used for all theming.
+
+## 2026-11-25 – How organisers get access
+**Decision:** Anyone can create an account. An Inspire admin then creates an organiser and makes an existing account its owner. Owners can add staff (who must have an account).
+**Why:** Simple and safe for stage 1. Self-service organiser sign-up with fees can come later.
+
+## 2026-11-25 – Public program shows names
+**Decision:** Once an event is published, the public page shows the program overview (sessions, sections and item counts). Performer names are readable by the public database rules for published events, as in a printed program, but the page doesn't list them yet. No contact details or ages of children are stored in the program.
+**Why:** Programs are normally public, but many competitors are children. Revisit before showing names publicly.
+
+## 2026-11-25 – Item numbers are text, running order is separate
+**Decision:** Item numbers can contain letters (e.g. "45A" for late entries). The running order is stored separately, so items can be moved without renumbering.
+
+## 2026-11-25 – Scratch rather than delete
+**Decision:** Withdrawn items are "scratched" and stay in the records. Delete is only for mistakes and asks for confirmation.
