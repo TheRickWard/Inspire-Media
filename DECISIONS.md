@@ -74,3 +74,7 @@ Each entry records what was decided, why, and the date.
 **Decision:** Competitors pay on Square's or PayPal's own secure page (we never see card details). When they come back, the website asks Square or PayPal directly whether the money arrived and how much, and only then marks the cart paid. Paying puts each item into the organiser's program (no item number yet) and gives a receipt number like INS-1001. Changing the cart after starting a payment cancels that payment attempt, so the amount paid always matches the cart. Only the website's server key can mark a cart paid. No new libraries: the website talks to Square and PayPal directly.
 **Why:** Safest and simplest option. No card data on our site, and nothing a competitor does in their browser can mark a cart paid.
 **Note:** For now all payments go into Inspire's own Square and PayPal accounts, including for other organisers' events. Paying other organisers out (or connecting their own accounts) is a later decision.
+
+## 2026-11-26 – Numbering entries
+**Decision:** The Program page has two buttons. "Number new entries only" keeps every existing number and gives each new entry the number of the item before it plus a letter (12A, 12B…), so numbers already sent out don't change. "Renumber the whole program" numbers everything 1, 2, 3… in running order (it asks first, because existing numbers change). Scratched items keep their place and get a number.
+**Why:** Rick asked for numbering in one click. Late online entries are common after a program is shared, so the safe option is offered first.

@@ -4,8 +4,8 @@ import { loadManagedEvent } from "@/lib/access";
 import { ActionForm } from "@/components/ActionForm";
 import { EntryControls } from "@/components/EntryControls";
 import { EventNav } from "@/components/EventNav";
-import { card, h2, input, label, link, muted } from "@/components/ui";
-import { addLateEntry } from "@/app/org/program-actions";
+import { buttonSecondary, card, h2, input, label, link, muted } from "@/components/ui";
+import { addLateEntry, numberEntries } from "@/app/org/program-actions";
 
 async function Program({ params }: { params: Promise<{ orgId: string; eventId: string }> }) {
   const { orgId, eventId } = await params;
@@ -23,9 +23,48 @@ async function Program({ params }: { params: Promise<{ orgId: string; eventId: s
     (a, b) => (firstPos.get(a.id) ?? Infinity) - (firstPos.get(b.id) ?? Infinity),
   );
 
+  const unnumbered = (entries ?? []).filter((e) => !e.item_number).length;
+  const numbered = (entries ?? []).length - unnumbered;
+
   return (
     <div className="space-y-6">
       <EventNav orgId={orgId} orgName={org.name} event={event} current="program" />
+
+      {(entries ?? []).length > 0 && (
+        <section className={`${card} space-y-3`}>
+          <h2 className={h2}>Item numbers</h2>
+          <p className="text-sm text-slate-600">
+            {unnumbered === 0
+              ? "Every entry has an item number."
+              : `${unnumbered} ${unnumbered === 1 ? "entry is" : "entries are"} not numbered yet (usually new online entries).`}{" "}
+            Numbers follow the running order below, so move items into place first.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            {numbered > 0 && (
+              <ActionForm
+                action={numberEntries.bind(null, eventId, "new")}
+                submitLabel="Number new entries only"
+                pendingLabel="Numbering…"
+                className=""
+              />
+            )}
+            <ActionForm
+              action={numberEntries.bind(null, eventId, "all")}
+              submitLabel={numbered === 0 ? "Number all entries 1, 2, 3…" : "Renumber the whole program 1, 2, 3…"}
+              pendingLabel="Numbering…"
+              className=""
+              buttonClassName={numbered > 0 ? buttonSecondary : undefined}
+              confirmText={numbered > 0 ? "This changes the item numbers of entries that already have one. Anyone who has seen the old numbers will need the new ones. Continue?" : undefined}
+            />
+          </div>
+          {numbered > 0 && (
+            <p className={muted}>
+              &quot;New entries only&quot; keeps existing numbers and gives each new entry the number before it plus a letter (e.g. 12A).
+              &quot;Renumber&quot; starts again from 1.
+            </p>
+          )}
+        </section>
+      )}
 
       {(sections ?? []).length === 0 ? (
         <div className={card}>
@@ -73,7 +112,7 @@ async function Program({ params }: { params: Promise<{ orgId: string; eventId: s
             {items.length === 0 ? (
               <p className="px-4 py-3 text-sm text-slate-500">No items yet.</p>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="relative overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead className="text-slate-500">
                     <tr>

@@ -8,7 +8,6 @@
 ### Portal stage 2 – Entries, cart, payments and receipts
 - [ ] Payment "webhooks" as a backup, so a payment is recorded even if the competitor closes the page before returning
 - [ ] Refunds (done in Square/PayPal for now; show them in the portal later)
-- [ ] Organiser: number all un-numbered entries in one click
 - [ ] Organiser chooses what competitor accounts are allowed to do
 - [ ] Filter competitions by date, location, age and genre (once there are several)
 
@@ -35,6 +34,7 @@
 ## In Progress
 
 ## Done
+- [x] 2026-11-26 – Item numbers in one click on the Program page: number only new entries (12A, 12B…) or renumber the whole program 1, 2, 3…
 - [x] 2026-11-26 – Organiser "Payments" tab per event: money received (by Square/PayPal), paid carts with receipts and contact, unpaid carts
 - [x] 2026-11-26 – Rick made test payments with Square and PayPal on the live site (both worked)
 - [x] 2026-11-26 – Payments (test mode): Square and PayPal checkout, payment checked with Square/PayPal before marking paid, paid items go into the program, receipt page with logo and My receipts, 9 payment tests and 1 more security test
