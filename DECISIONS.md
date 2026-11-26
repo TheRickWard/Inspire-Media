@@ -78,3 +78,7 @@ Each entry records what was decided, why, and the date.
 ## 2026-11-26 – Numbering entries
 **Decision:** The Program page has two buttons. "Number new entries only" keeps every existing number and gives each new entry the number of the item before it plus a letter (12A, 12B…), so numbers already sent out don't change. "Renumber the whole program" numbers everything 1, 2, 3… in running order (it asks first, because existing numbers change). Scratched items keep their place and get a number.
 **Why:** Rick asked for numbering in one click. Late online entries are common after a program is shared, so the safe option is offered first.
+
+## 2026-11-26 – Backup for payments (webhooks)
+**Decision:** Square and PayPal also notify the website directly when someone pays. The website checks the notification is genuinely from Square/PayPal (signature check), then asks them what was paid, the same as when the competitor comes back. Organisers can also press "Check with Square/PayPal" on an unpaid cart.
+**Why:** Rick asked for a backup so payments aren't missed if someone closes the page before returning.

@@ -133,3 +133,37 @@ test("PayPal: an unfinished or someone else's payment is not treated as paid", a
   const other = fakeFetch({ "POST /v1/oauth2/token": token, "POST /v2/checkout/orders/PP-1/capture": () => [201, { ...capturedOrder, purchase_units: [{ ...capturedOrder.purchase_units[0], reference_id: "x" }] }] });
   assert.equal((await capturePayPalPayment(paypal, "PP-1", ORDER, other.fn)).paid, false);
 });
+
+// ---- Notifications (webhooks): the backup for people who close the page before coming back.
+import { createHmac } from "node:crypto";
+import { paypalOrderIdFrom, squareOrderIdFrom, verifyPayPalWebhook, verifySquareSignature } from "../src/lib/payments/webhooks.ts";
+
+test("Square notifications: only accepted with Square's signature for our address", () => {
+  const key = "test-signature-key";
+  const url = "https://inspire-media-tau.vercel.app/api/webhooks/square";
+  const body = JSON.stringify({ type: "payment.updated", data: { object: { payment: { order_id: "SQ-ORDER-1" } } } });
+  const good = createHmac("sha256", key).update(url + body).digest("base64");
+  assert.equal(verifySquareSignature(body, good, url, key), true);
+  assert.equal(verifySquareSignature(body + " ", good, url, key), false, "changed body");
+  assert.equal(verifySquareSignature(body, good, "https://evil.test/api/webhooks/square", key), false, "different address");
+  assert.equal(verifySquareSignature(body, null, url, key), false, "no signature");
+  assert.equal(squareOrderIdFrom(JSON.parse(body)), "SQ-ORDER-1");
+  assert.equal(squareOrderIdFrom({ type: "something.else" }), null);
+});
+
+test("PayPal notifications: the order id is found for approvals and captures", () => {
+  assert.equal(paypalOrderIdFrom({ event_type: "CHECKOUT.ORDER.APPROVED", resource: { id: "PP-1" } }), "PP-1");
+  assert.equal(paypalOrderIdFrom({ event_type: "PAYMENT.CAPTURE.COMPLETED", resource: { id: "CAP1", supplementary_data: { related_ids: { order_id: "PP-1" } } } }), "PP-1");
+  assert.equal(paypalOrderIdFrom({ event_type: "BILLING.SUBSCRIPTION.CREATED", resource: { id: "X" } }), null);
+});
+
+test("PayPal notifications: PayPal is asked to confirm the signature", async () => {
+  const headers = new Headers({ "paypal-transmission-id": "T1", "paypal-transmission-sig": "SIG", "paypal-auth-algo": "SHA256withRSA", "paypal-cert-url": "https://api.sandbox.paypal.com/cert", "paypal-transmission-time": "2026-11-26T00:00:00Z" });
+  const ok = fakeFetch({ "POST /v1/oauth2/token": token, "POST /v1/notifications/verify-webhook-signature": () => [200, { verification_status: "SUCCESS" }] });
+  assert.equal(await verifyPayPalWebhook(paypal, "WH-1", headers, { id: "E1" }, ok.fn), true);
+  const sent = ok.calls[1].body as { webhook_id: string; transmission_sig: string };
+  assert.equal(sent.webhook_id, "WH-1");
+  assert.equal(sent.transmission_sig, "SIG");
+  const bad = fakeFetch({ "POST /v1/oauth2/token": token, "POST /v1/notifications/verify-webhook-signature": () => [200, { verification_status: "FAILURE" }] });
+  assert.equal(await verifyPayPalWebhook(paypal, "WH-1", headers, { id: "E1" }, bad.fn), false);
+});
