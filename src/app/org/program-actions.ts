@@ -57,6 +57,17 @@ export async function addLateEntry(eventId: string, _prev: FormState, formData: 
   return done(`Late entry ${parsed.data.item_number} added to the end of its section.`);
 }
 
+export async function numberEntries(eventId: string, mode: "all" | "new"): Promise<FormState> {
+  await requireUser();
+  const supabase = await createSupabase();
+  const { data, error } = await supabase.rpc("number_entries", { ev: eventId, p_mode: mode });
+  if (error) return fail(friendlyDbError(error.message));
+  refresh();
+  const n = data ?? 0;
+  if (n === 0) return done("Every entry already has a number.");
+  return done(mode === "all" ? `Numbered ${n} items, 1 to ${n}, in running order.` : `Gave numbers to ${n} new ${n === 1 ? "entry" : "entries"}.`);
+}
+
 export async function moveEntry(entryId: string, direction: "up" | "down"): Promise<FormState> {
   await requireUser();
   const supabase = await createSupabase();

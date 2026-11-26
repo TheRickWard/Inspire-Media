@@ -330,6 +330,9 @@ isOneToOne: false
 "move_entry":
 { Args: { "direction": string,"entry": string }; Returns: undefined
                            },
+"number_entries":
+{ Args: { "ev": string,"p_mode": string }; Returns: number
+                           },
 "owns_dancer":
 { Args: { "dancer": string }; Returns: boolean
                            },

@@ -328,3 +328,23 @@ test("payments: only the website's server can mark a cart paid, and paid items b
   const { data: items } = await parent.from("order_items").select("id").eq("order_id", cart!.id);
   assert.ok((await parent.rpc("remove_from_cart", { item: items![0].id })).error);
 });
+
+test("numbering: new entries get letters after the item before them; renumbering starts from 1", async () => {
+  const staff = await signIn("staff@inspire.test");
+  const harbour = await signIn("organiser@harbourdance.test");
+
+  // The payments test left two un-numbered entries in the main event.
+  assert.ok((await harbour.rpc("number_entries", { ev: MAIN_EVENT, p_mode: "new" })).error, "other organisers can't number this program");
+
+  const { data: added, error } = await staff.rpc("number_entries", { ev: MAIN_EVENT, p_mode: "new" });
+  assert.equal(error, null);
+  assert.equal(added, 2);
+  const { data: lettered } = await staff.from("entries").select("item_number, performer_name").eq("event_id", MAIN_EVENT).in("performer_name", ["Daisy Example", "Northside Dance Co"]).order("position");
+  assert.ok(lettered!.every((e) => /^\d+[A-Z]$/.test(e.item_number ?? "")), JSON.stringify(lettered));
+  assert.equal((await staff.rpc("number_entries", { ev: MAIN_EVENT, p_mode: "new" })).data, 0, "nothing left to number");
+
+  const { data: total } = await staff.rpc("number_entries", { ev: MAIN_EVENT, p_mode: "all" });
+  const { data: all } = await staff.from("entries").select("item_number").eq("event_id", MAIN_EVENT).order("position");
+  assert.equal(total, all!.length);
+  assert.deepEqual(all!.map((e) => e.item_number), all!.map((_, i) => String(i + 1)));
+});
