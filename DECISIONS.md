@@ -66,6 +66,6 @@ Each entry records what was decided, why, and the date.
 **Decision:** Entries open and close automatically on the event's dates. An organiser (or the Inspire admin) can override this on the event page: "open now", "closed now", or back to automatic.
 **Why:** Rick asked for a way to reopen or close entries when needed.
 
-## 2026-11-26 – PayPal
-**Decision:** Launch with Square only. PayPal can be added later as a second option at checkout if competitors ask for it.
-**Why:** One payment provider is simpler to reconcile and costs less to run. Square already takes cards, Apple Pay and Google Pay.
+## 2026-11-26 – Square and PayPal
+**Decision:** Checkout offers two ways to pay: Square (cards, Apple Pay, Google Pay) and PayPal. Both are set up in test mode first. Keys go in Vercel's environment variables, never in chat or the code. Each paid cart records which provider was used and its payment reference, so payments can be matched up in either account.
+**Why:** Rick asked for PayPal as well as Square on 2026-11-26.

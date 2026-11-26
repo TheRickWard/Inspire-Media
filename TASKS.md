@@ -13,7 +13,7 @@
 - [ ] Organiser: number all un-numbered entries in one click
 - [ ] Organiser chooses what competitor accounts are allowed to do
 - [ ] Filter competitions by date, location, age and genre (once there are several)
-- [ ] Maybe later: PayPal as a second payment option
+- [ ] PayPal payments in test mode (needs Rick's PayPal Business account, a sandbox app at developer.paypal.com, and keys in Vercel)
 
 ### Portal stage 3 – Music
 - [ ] Competitors upload music per entry and confirm it is correct

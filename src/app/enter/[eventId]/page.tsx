@@ -160,6 +160,9 @@ async function EnterEvent({ params }: { params: Promise<{ eventId: string }> }) 
               <button type="button" className={`${button} w-full`} disabled>
                 Pay with Square
               </button>
+              <button type="button" className={`${button} w-full`} disabled>
+                Pay with PayPal
+              </button>
               <p className={muted}>Online payment: coming soon. Your cart is saved, and entries are confirmed once paid.</p>
             </>
           )}
