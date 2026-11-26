@@ -2,6 +2,7 @@
 // Needs the local database running with sample data (npx supabase start / npx supabase db reset).
 // Run with: npm run test:security
 import { test } from "node:test";
+import { execSync } from "node:child_process";
 import assert from "node:assert/strict";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
@@ -262,4 +263,68 @@ test("cart: checks dancer ownership, age, number of dancers and entry dates", as
 test("signed-out visitors can't use the cart", async () => {
   const { error } = await anon().rpc("add_to_cart", { sec: "00000000-0000-4000-8000-000000000000", p_dancer_ids: [], p_studio_name: "" });
   assert.ok(error);
+});
+
+// The local database's server key, read from `supabase status` so it isn't written in the code.
+const SECRET =
+  process.env.SUPABASE_SECRET_KEY ??
+  (JSON.parse(execSync("npx supabase status -o json", { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] })) as { SECRET_KEY: string }).SECRET_KEY;
+
+test("payments: only the website's server can mark a cart paid, and paid items become entries", async () => {
+  const parent = await signIn("parent@example.test");
+  const server = createClient(URL, SECRET, { auth: { persistSession: false } });
+  const sectionId = async (code: string) => (await parent.from("sections").select("id").eq("event_id", MAIN_EVENT).eq("code", code).single()).data!.id;
+
+  // The cart from the previous test has Daisy's solo in section 12. Add a studio entry.
+  await parent.rpc("add_to_cart", { sec: await sectionId("30"), p_dancer_ids: [], p_studio_name: "Northside Dance Co" });
+  const { data: cart } = await parent.from("orders").select("id, total_cents").eq("event_id", MAIN_EVENT).eq("status", "open").single();
+  assert.equal(cart!.total_cents, 2500 + 6000);
+
+  // Signed-in people can't record a checkout or mark their own cart paid.
+  const selfRecord = await parent.rpc("record_checkout", { p_order: cart!.id, p_provider: "square", p_reference: "SQ-1", p_amount_cents: 8500 });
+  assert.ok(selfRecord.error);
+  const selfPay = await parent.rpc("complete_order", { p_order: cart!.id, p_provider: "square", p_reference: "SQ-1", p_paid_cents: 8500, p_receipt_url: "" });
+  assert.ok(selfPay.error);
+
+  // The checkout has to be for the cart's current total.
+  const wrongAmount = await server.rpc("record_checkout", { p_order: cart!.id, p_provider: "square", p_reference: "SQ-1", p_amount_cents: 100 });
+  assert.match(wrongAmount.error?.message ?? "", /cart has changed/);
+  assert.equal((await server.rpc("record_checkout", { p_order: cart!.id, p_provider: "square", p_reference: "SQ-1", p_amount_cents: 8500 })).error, null);
+
+  // Changing the cart cancels that checkout.
+  const { data: extra } = await parent.rpc("add_to_cart", { sec: await sectionId("15"), p_dancer_ids: [(await parent.from("dancers").select("id").eq("full_name", "Daisy Example").single()).data!.id], p_studio_name: "" });
+  await parent.rpc("remove_from_cart", { item: extra as string });
+  const stale = await server.rpc("complete_order", { p_order: cart!.id, p_provider: "square", p_reference: "SQ-1", p_paid_cents: 8500, p_receipt_url: "" });
+  assert.match(stale.error?.message ?? "", /does not match the cart's checkout/);
+
+  // Paying the wrong amount is refused.
+  await server.rpc("record_checkout", { p_order: cart!.id, p_provider: "square", p_reference: "SQ-2", p_amount_cents: 8500 });
+  const underpaid = await server.rpc("complete_order", { p_order: cart!.id, p_provider: "square", p_reference: "SQ-2", p_paid_cents: 8000, p_receipt_url: "" });
+  assert.match(underpaid.error?.message ?? "", /does not match the cart total/);
+
+  // The right payment marks it paid, once.
+  const paid = await server.rpc("complete_order", { p_order: cart!.id, p_provider: "square", p_reference: "SQ-2", p_paid_cents: 8500, p_receipt_url: "https://square.test/r" });
+  assert.equal(paid.error, null);
+  assert.match(paid.data as string, /^INS-\d+$/);
+  const again = await server.rpc("complete_order", { p_order: cart!.id, p_provider: "square", p_reference: "SQ-2", p_paid_cents: 8500, p_receipt_url: "" });
+  assert.equal(again.data, paid.data, "returning to the site twice gives the same receipt");
+
+  const { data: order } = await parent.from("orders").select("status, receipt_number, paid_amount_cents, order_items(entry_id)").eq("id", cart!.id).single();
+  assert.equal(order!.status, "paid");
+  assert.equal(order!.paid_amount_cents, 8500);
+  assert.ok(order!.order_items.every((i) => i.entry_id));
+
+  // The entries are in the organiser's program, without item numbers yet.
+  const staff = await signIn("staff@inspire.test");
+  const { data: newEntries } = await staff.from("entries").select("performer_name, studio_name, item_number, sections(code), entry_dancers(dancer_id)").eq("event_id", MAIN_EVENT).is("item_number", null).order("position");
+  assert.deepEqual(
+    newEntries!.map((e) => [(e.sections as unknown as { code: string }).code, e.performer_name, e.studio_name, e.entry_dancers.length]),
+    [["12", "Daisy Example", "Starlight Dance Academy", 1], ["30", "Northside Dance Co", "Northside Dance Co", 0]],
+  );
+
+  // A paid cart can't be changed, and a dancer with paid entries is kept.
+  const { data: daisy } = await parent.from("dancers").select("id").eq("full_name", "Daisy Example").single();
+  assert.match((await parent.rpc("delete_dancer", { dancer: daisy!.id })).error?.message ?? "", /paid entries/);
+  const { data: items } = await parent.from("order_items").select("id").eq("order_id", cart!.id);
+  assert.ok((await parent.rpc("remove_from_cart", { item: items![0].id })).error);
 });

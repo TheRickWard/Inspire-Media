@@ -175,14 +175,14 @@ isOneToOne: false
                   ]
                 },"orders": {
                   Row: {
-                    "created_at": string,"event_id": string,"id": string,"paid_at": string | null,"payment_reference": string | null,"receipt_number": string | null,"status": Database["public"]['Enums']["order_status"],"total_cents": number,"user_id": string
+                    "checkout_amount_cents": number | null,"checkout_provider": string | null,"checkout_reference": string | null,"created_at": string,"event_id": string,"id": string,"paid_amount_cents": number | null,"paid_at": string | null,"payment_provider": string | null,"payment_reference": string | null,"provider_receipt_url": string | null,"receipt_number": string | null,"status": Database["public"]['Enums']["order_status"],"total_cents": number,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"event_id": string,"id"?: string,"paid_at"?: string | null,"payment_reference"?: string | null,"receipt_number"?: string | null,"status"?: Database["public"]['Enums']["order_status"],"total_cents"?: number,"user_id": string
+                    "checkout_amount_cents"?: number | null,"checkout_provider"?: string | null,"checkout_reference"?: string | null,"created_at"?: string,"event_id": string,"id"?: string,"paid_amount_cents"?: number | null,"paid_at"?: string | null,"payment_provider"?: string | null,"payment_reference"?: string | null,"provider_receipt_url"?: string | null,"receipt_number"?: string | null,"status"?: Database["public"]['Enums']["order_status"],"total_cents"?: number,"user_id": string
                   }
                   Update: {
-                    "created_at"?: string,"event_id"?: string,"id"?: string,"paid_at"?: string | null,"payment_reference"?: string | null,"receipt_number"?: string | null,"status"?: Database["public"]['Enums']["order_status"],"total_cents"?: number,"user_id"?: string
+                    "checkout_amount_cents"?: number | null,"checkout_provider"?: string | null,"checkout_reference"?: string | null,"created_at"?: string,"event_id"?: string,"id"?: string,"paid_amount_cents"?: number | null,"paid_at"?: string | null,"payment_provider"?: string | null,"payment_reference"?: string | null,"provider_receipt_url"?: string | null,"receipt_number"?: string | null,"status"?: Database["public"]['Enums']["order_status"],"total_cents"?: number,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -300,6 +300,9 @@ isOneToOne: false
 "can_manage_event":
 { Args: { "ev": string }; Returns: boolean
                            },
+"complete_order":
+{ Args: { "p_order": string,"p_paid_cents": number,"p_provider": string,"p_receipt_url": string,"p_reference": string }; Returns: string
+                           },
 "dancer_entered_in_my_event":
 { Args: { "dancer": string }; Returns: boolean
                            },
@@ -329,6 +332,9 @@ isOneToOne: false
                            },
 "owns_dancer":
 { Args: { "dancer": string }; Returns: boolean
+                           },
+"record_checkout":
+{ Args: { "p_amount_cents": number,"p_order": string,"p_provider": string,"p_reference": string }; Returns: undefined
                            },
 "remove_from_cart":
 { Args: { "item": string }; Returns: undefined

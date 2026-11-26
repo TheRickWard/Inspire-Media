@@ -8,6 +8,8 @@ import { ageOn, describeAges, formatDate, formatDateRange, formatMoney, todayInS
 import { button, buttonSmall, card, h1, h2, input, label, link, muted } from "@/components/ui";
 import { entriesStatus } from "@/lib/entries";
 import { addStudioEntryToCart, addToCart, removeFromCart } from "../actions";
+import { checkPayment, startCheckout } from "../checkout-actions";
+import { paymentsReady } from "@/lib/payments/config";
 
 function dancerRule(min: number, max: number | null) {
   if (max === 1) return "Solo";
@@ -16,8 +18,9 @@ function dancerRule(min: number, max: number | null) {
   return min > 1 ? `${min}+ dancers` : "";
 }
 
-async function EnterEvent({ params }: { params: Promise<{ eventId: string }> }) {
+async function EnterEvent({ params, searchParams }: { params: Promise<{ eventId: string }>; searchParams: Promise<{ payment?: string }> }) {
   const { eventId } = await params;
+  const { payment } = await searchParams;
   const user = await requireUser();
   const supabase = await createSupabase();
 
@@ -36,12 +39,13 @@ async function EnterEvent({ params }: { params: Promise<{ eventId: string }> }) 
   const [{ data: sections }, { data: dancers }, { data: order }] = await Promise.all([
     supabase.from("sections").select("id, code, name, entry_fee_cents, min_age, max_age, min_dancers, max_dancers").eq("event_id", eventId).order("position"),
     supabase.from("dancers").select("id, full_name, date_of_birth").eq("owner_id", user.id).order("full_name"),
-    supabase.from("orders").select("id, total_cents, order_items(id, section_id, dancer_ids, studio_name, fee_cents)").eq("event_id", eventId).eq("user_id", user.id).eq("status", "open").maybeSingle(),
+    supabase.from("orders").select("id, total_cents, checkout_provider, order_items(id, section_id, dancer_ids, studio_name, fee_cents)").eq("event_id", eventId).eq("user_id", user.id).eq("status", "open").maybeSingle(),
   ]);
 
   const sectionById = new Map((sections ?? []).map((s) => [s.id, s]));
   const dancerById = new Map((dancers ?? []).map((d) => [d.id, d]));
   const items = order?.order_items ?? [];
+  const pay = paymentsReady();
   const lastStudio = [...items].reverse().find((i) => i.studio_name)?.studio_name ?? "";
 
   const sectionPicker = (
@@ -65,6 +69,17 @@ async function EnterEvent({ params }: { params: Promise<{ eventId: string }> }) 
         <p className="text-sm text-slate-700">{formatDateRange(event.starts_on, event.ends_on)}{event.venue_name && ` · ${event.venue_name}`}</p>
         <p className={muted}>Ages are worked out as at {formatDate(ageDate)}.</p>
       </div>
+
+      {payment === "cancelled" && (
+        <div className={`${card} border-amber-200 bg-amber-50`}>
+          <p className="text-sm text-amber-900">Payment cancelled. Nothing was charged, and your cart is still here.</p>
+        </div>
+      )}
+      {payment === "pending" && order?.checkout_provider && (
+        <div className={`${card} border-amber-200 bg-amber-50`}>
+          <p className="text-sm text-amber-900">We haven&apos;t been able to confirm your payment yet. If you finished paying, check again in a minute.</p>
+        </div>
+      )}
 
       {!open && (
         <div className={`${card} border-amber-200 bg-amber-50`}>
@@ -157,13 +172,23 @@ async function EnterEvent({ params }: { params: Promise<{ eventId: string }> }) 
                 <span>Total</span>
                 <span>{formatMoney(order?.total_cents ?? 0)}</span>
               </div>
-              <button type="button" className={`${button} w-full`} disabled>
-                Pay with Square
-              </button>
-              <button type="button" className={`${button} w-full`} disabled>
-                Pay with PayPal
-              </button>
-              <p className={muted}>Online payment: coming soon. Your cart is saved, and entries are confirmed once paid.</p>
+              {open && order && (pay.square || pay.paypal) ? (
+                <div className="space-y-2">
+                  {pay.square && (
+                    <ActionForm action={startCheckout.bind(null, order.id, "square")} submitLabel="Pay by card with Square" pendingLabel="Opening Square…" className="" buttonClassName={`${button} w-full`} />
+                  )}
+                  {pay.paypal && (
+                    <ActionForm action={startCheckout.bind(null, order.id, "paypal")} submitLabel="Pay with PayPal" pendingLabel="Opening PayPal…" className="" buttonClassName={`${button} w-full`} />
+                  )}
+                  {pay.testMode && <p className="text-xs font-medium text-amber-700">Test mode: no real money is taken.</p>}
+                </div>
+              ) : (
+                <p className={muted}>{open ? "Online payment: coming soon. Your cart is saved." : "Entries are closed, so this cart can't be paid."}</p>
+              )}
+              {order?.checkout_provider && (
+                <ActionForm action={checkPayment.bind(null, order.id)} submitLabel="Already paid? Check my payment" pendingLabel="Checking…" className="" buttonClassName={buttonSmall} />
+              )}
+              <p className={muted}>Your entries go into the program once paid. You&apos;ll get a receipt here, and an email receipt from the payment service.</p>
             </>
           )}
         </aside>
@@ -172,10 +197,10 @@ async function EnterEvent({ params }: { params: Promise<{ eventId: string }> }) 
   );
 }
 
-export default function EnterEventPage({ params }: PageProps<"/enter/[eventId]">) {
+export default function EnterEventPage({ params, searchParams }: PageProps<"/enter/[eventId]">) {
   return (
     <Suspense fallback={<p className={muted}>Loading…</p>}>
-      <EnterEvent params={params} />
+      <EnterEvent params={params} searchParams={searchParams as Promise<{ payment?: string }>} />
     </Suspense>
   );
 }

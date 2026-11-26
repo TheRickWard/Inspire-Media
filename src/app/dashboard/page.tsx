@@ -57,10 +57,9 @@ async function Dashboard() {
       </section>
 
       <section className={card}>
-        <h2 className={h2}>My entries</h2>
-        <p className="mt-1 text-sm text-slate-600">
-          Paying online, uploading music and downloading critiques: coming soon.
-        </p>
+        <h2 className={h2}>My entries and receipts</h2>
+        <p className="mt-1 text-sm text-slate-600">See what you&apos;ve paid for and print receipts. Uploading music and downloading critiques: coming soon.</p>
+        <Link href="/receipts" className={`${link} mt-2 inline-block text-sm font-medium`}>My receipts →</Link>
       </section>
     </div>
   );

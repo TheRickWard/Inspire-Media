@@ -33,3 +33,17 @@ export function describeAges(minAge: number | null, maxAge: number | null): stri
   if (minAge != null) return `${minAge} & over`;
   return "";
 }
+
+const dateTimeFmt = new Intl.DateTimeFormat("en-AU", {
+  timeZone: "Australia/Sydney",
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+});
+
+/** A moment in time, shown in Sydney time, e.g. "26 Nov 2026, 5:30 pm". */
+export function formatDateTime(value: string | null | undefined): string {
+  return value ? dateTimeFmt.format(new Date(value)) : "";
+}

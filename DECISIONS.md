@@ -69,3 +69,8 @@ Each entry records what was decided, why, and the date.
 ## 2026-11-26 – Square and PayPal
 **Decision:** Checkout offers two ways to pay: Square (cards, Apple Pay, Google Pay) and PayPal. Both are set up in test mode first. Keys go in Vercel's environment variables, never in chat or the code. Each paid cart records which provider was used and its payment reference, so payments can be matched up in either account.
 **Why:** Rick asked for PayPal as well as Square on 2026-11-26.
+
+## 2026-11-26 – How online payments work
+**Decision:** Competitors pay on Square's or PayPal's own secure page (we never see card details). When they come back, the website asks Square or PayPal directly whether the money arrived and how much, and only then marks the cart paid. Paying puts each item into the organiser's program (no item number yet) and gives a receipt number like INS-1001. Changing the cart after starting a payment cancels that payment attempt, so the amount paid always matches the cart. Only the website's server key can mark a cart paid. No new libraries: the website talks to Square and PayPal directly.
+**Why:** Safest and simplest option. No card data on our site, and nothing a competitor does in their browser can mark a cart paid.
+**Note:** For now all payments go into Inspire's own Square and PayPal accounts, including for other organisers' events. Paying other organisers out (or connecting their own accounts) is a later decision.
