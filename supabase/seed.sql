@@ -46,7 +46,7 @@ insert into public.organisation_members (organisation_id, user_id, role) values
 insert into public.events (id, organisation_id, name, status, venue_name, venue_address, starts_on, ends_on,
   entries_open_on, entries_close_on, music_due_on, contact_email, contact_phone, description) values
   ('e0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000001', 'Inspire Sydney Dance Eisteddfod 2027', 'published', 'Westside Community Theatre',
-   '12 Example Street, Parramatta NSW', '2027-03-13', '2027-03-14', '2026-12-01', '2027-02-01', '2027-02-20',
+   '12 Example Street, Parramatta NSW', '2027-03-13', '2027-03-14', '2026-11-01', '2027-02-01', '2027-02-20',
    'events@inspire.test', '02 9000 0000',
    'Solo, duo/trio and troupe sections for all ages. Doors open 7:30am. Please have music uploaded by the due date.'),
   ('e0000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000001', 'Inspire Winter Classic 2027', 'draft', 'Northside Hall',
@@ -70,6 +70,15 @@ where event_id = 'e0000000-0000-4000-8000-000000000001' and name = 'Saturday Aft
 insert into public.sections (event_id, session_id, code, name, genre, age_group, entry_fee_cents, position)
 select 'e0000000-0000-4000-8000-000000000001', id, '30', 'Contemporary Troupe 13 Years & Under', 'Contemporary', '13 & Under', 6000, 4 from public.event_sessions
 where event_id = 'e0000000-0000-4000-8000-000000000001' and name = 'Saturday Afternoon';
+
+update public.sections set min_age = null, max_age = 10, min_dancers = 1, max_dancers = 1 where event_id = 'e0000000-0000-4000-8000-000000000001' and code = '12';
+update public.sections set min_age = null, max_age = 12, min_dancers = 1, max_dancers = 1 where event_id = 'e0000000-0000-4000-8000-000000000001' and code = '15';
+update public.sections set min_age = null, max_age = null, min_dancers = 2, max_dancers = 3 where event_id = 'e0000000-0000-4000-8000-000000000001' and code = '21';
+update public.sections set min_age = null, max_age = 13, min_dancers = 4, max_dancers = null where event_id = 'e0000000-0000-4000-8000-000000000001' and code = '30';
+update public.events set age_as_at = '2027-01-01' where id = 'e0000000-0000-4000-8000-000000000001';
+insert into public.dancers (owner_id, full_name, date_of_birth, studio_name) values
+  ('44444444-4444-4444-8444-444444444444', 'Daisy Example', '2017-05-04', 'Starlight Dance Academy'),
+  ('44444444-4444-4444-8444-444444444444', 'Max Example', '2014-09-21', 'Starlight Dance Academy');
 
 insert into public.entries (event_id, section_id, item_number, performer_name, studio_name, routine_title, position)
 select 'e0000000-0000-4000-8000-000000000001', id, '101', 'Grace Walsh', 'Starlight Dance Academy', 'Shine', 1 from public.sections

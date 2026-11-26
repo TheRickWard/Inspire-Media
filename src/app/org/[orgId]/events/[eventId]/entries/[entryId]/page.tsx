@@ -20,7 +20,7 @@ async function EditEntry({ params }: { params: Promise<{ orgId: string; eventId:
     <div className="max-w-2xl space-y-6">
       <div>
         <p className={muted}><Link href={back} className={link}>{event.name} – Program</Link> /</p>
-        <h1 className={h1}>Edit item {entry.item_number}</h1>
+        <h1 className={h1}>Edit item {entry.item_number ?? "(not numbered yet)"}</h1>
       </div>
       <div className={card}>
         <ActionForm action={updateEntry.bind(null, orgId, eventId, entryId)} submitLabel="Save">
@@ -32,7 +32,7 @@ async function EditEntry({ params }: { params: Promise<{ orgId: string; eventId:
           </div>
           <div>
             <label htmlFor="item_number" className={label}>Item number</label>
-            <input id="item_number" name="item_number" defaultValue={entry.item_number} required className={input} />
+            <input id="item_number" name="item_number" defaultValue={entry.item_number ?? ""} required className={input} />
           </div>
           <div>
             <label htmlFor="performer_name" className={label}>Performer</label>
@@ -50,7 +50,7 @@ async function EditEntry({ params }: { params: Promise<{ orgId: string; eventId:
       </div>
       <div className={card}>
         <p className="mb-3 text-sm text-slate-600">Usually you&apos;d <strong>scratch</strong> an item instead, so it stays in the records. Delete only removes mistakes.</p>
-        <ActionForm action={deleteEntry.bind(null, orgId, eventId, entryId)} submitLabel="Delete this item" pendingLabel="Deleting…" className="" buttonClassName={buttonSecondary} confirmText={`Delete item ${entry.item_number} permanently?`} />
+        <ActionForm action={deleteEntry.bind(null, orgId, eventId, entryId)} submitLabel="Delete this item" pendingLabel="Deleting…" className="" buttonClassName={buttonSecondary} confirmText={`Delete item ${entry.item_number ?? ""} permanently?`} />
       </div>
     </div>
   );

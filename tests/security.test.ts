@@ -2,6 +2,7 @@
 // Needs the local database running with sample data (npx supabase start / npx supabase db reset).
 // Run with: npm run test:security
 import { test } from "node:test";
+import { execSync } from "node:child_process";
 import assert from "node:assert/strict";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
@@ -152,4 +153,178 @@ test("program import, late entries and reordering work and are all-or-nothing", 
   await db.from("entries").delete().eq("event_id", DRAFT_EVENT);
   await db.from("sections").delete().eq("event_id", DRAFT_EVENT);
   await db.from("event_sessions").delete().eq("event_id", DRAFT_EVENT);
+});
+
+// ---------------------------------------------------------------- stage 2: dancers and carts
+
+test("dancers are private to the account that added them", async () => {
+  const parent = await signIn("parent@example.test");
+  const { data: mine } = await parent.from("dancers").select("full_name").order("full_name");
+  assert.deepEqual(mine?.map((d) => d.full_name), ["Daisy Example", "Max Example"]);
+
+  for (const email of ["organiser@harbourdance.test", "staff@inspire.test", "admin@inspire.test"]) {
+    const other = await signIn(email);
+    const { data } = await other.from("dancers").select("id");
+    assert.deepEqual(data, [], `${email} must not see the parent's dancers before they're entered`);
+  }
+
+  const { data: anonDancers } = await anon().from("dancers").select("id");
+  assert.deepEqual(anonDancers ?? [], []);
+});
+
+test("cart: checks dancer ownership, age, number of dancers and entry dates", async () => {
+  const parent = await signIn("parent@example.test");
+  const { data: dancers } = await parent.from("dancers").select("id, full_name").order("full_name");
+  const daisy = dancers!.find((d) => d.full_name === "Daisy Example")!.id; // 9 on 1 Jan 2027
+  const max = dancers!.find((d) => d.full_name === "Max Example")!.id; // 12 on 1 Jan 2027
+  const section = async (code: string) => (await parent.from("sections").select("id").eq("event_id", MAIN_EVENT).eq("code", code).single()).data!.id;
+
+  // Age limits: section 12 is 10 & under.
+  const tooOld = await parent.rpc("add_to_cart", { sec: await section("12"), p_dancer_ids: [max], p_studio_name: "" });
+  assert.match(tooOld.error?.message ?? "", /Outside the age group.*Max Example \(12\)/);
+
+  // Number of dancers: section 21 is a duo/trio.
+  const soloInDuo = await parent.rpc("add_to_cart", { sec: await section("21"), p_dancer_ids: [daisy], p_studio_name: "" });
+  assert.match(soloInDuo.error?.message ?? "", /at least 2 dancers/);
+  const twoInSolo = await parent.rpc("add_to_cart", { sec: await section("12"), p_dancer_ids: [daisy, max], p_studio_name: "" });
+  assert.match(twoInSolo.error?.message ?? "", /at most 1 dancers/);
+
+  // Someone else's dancer.
+  const organiser = await signIn("organiser@harbourdance.test");
+  const stolen = await organiser.rpc("add_to_cart", { sec: await section("12"), p_dancer_ids: [daisy], p_studio_name: "" });
+  assert.match(stolen.error?.message ?? "", /only enter your own dancers/);
+
+  // A good entry goes in the cart with the section's fee.
+  const ok = await parent.rpc("add_to_cart", { sec: await section("12"), p_dancer_ids: [daisy], p_studio_name: "" });
+  assert.equal(ok.error, null);
+  const duo = await parent.rpc("add_to_cart", { sec: await section("21"), p_dancer_ids: [daisy, max], p_studio_name: "" });
+  assert.equal(duo.error, null);
+  const { data: order } = await parent.from("orders").select("id, total_cents, status, order_items(id)").eq("event_id", MAIN_EVENT).eq("status", "open").single();
+  assert.equal(order!.total_cents, 2500 + 3500);
+  assert.equal(order!.order_items.length, 2);
+
+  // Organisers can see carts for their own event, other organisers can't.
+  const staff = await signIn("staff@inspire.test");
+  const { data: staffView } = await staff.from("orders").select("id").eq("id", order!.id);
+  assert.equal(staffView?.length, 1);
+  const { data: otherView } = await organiser.from("orders").select("id").eq("id", order!.id);
+  assert.deepEqual(otherView, []);
+
+  // Nobody can mark an order paid directly.
+  const { data: hacked } = await parent.from("orders").update({ status: "paid" }).eq("id", order!.id).select("id");
+  assert.deepEqual(hacked ?? [], []);
+  const { error: insertError } = await parent.from("order_items").insert({ order_id: order!.id, section_id: await section("12"), dancer_ids: [daisy], fee_cents: 0 });
+  assert.ok(insertError, "cart items can only be added through add_to_cart, which sets the fee");
+
+  // Removing items keeps the total right, and others can't remove them.
+  const firstItem = order!.order_items[0].id;
+  const { error: otherRemove } = await organiser.rpc("remove_from_cart", { item: firstItem });
+  assert.ok(otherRemove);
+  for (const i of order!.order_items) await parent.rpc("remove_from_cart", { item: i.id });
+  const { data: after } = await parent.from("orders").select("total_cents").eq("id", order!.id).single();
+  assert.equal(after!.total_cents, 0);
+
+  // Entries closed: the Winter Classic has no entry dates.
+  const harbour = await signIn("organiser@harbourdance.test");
+  const { data: harbourSection } = await harbour.from("sections").select("id").eq("event_id", HARBOUR_EVENT).single();
+  const closed = await parent.rpc("add_to_cart", { sec: harbourSection?.id ?? "00000000-0000-4000-8000-000000000000", p_dancer_ids: [daisy], p_studio_name: "" });
+  assert.ok(closed.error, "can't enter a draft or closed event");
+
+  // Studio entries: just a studio name, no dancers; not both, not neither.
+  const studio = await parent.rpc("add_to_cart", { sec: await section("30"), p_dancer_ids: [], p_studio_name: "Northside Dance Co" });
+  assert.equal(studio.error, null);
+  const both = await parent.rpc("add_to_cart", { sec: await section("12"), p_dancer_ids: [daisy], p_studio_name: "Northside Dance Co" });
+  assert.match(both.error?.message ?? "", /not both/);
+  const neither = await parent.rpc("add_to_cart", { sec: await section("12"), p_dancer_ids: [], p_studio_name: "  " });
+  assert.match(neither.error?.message ?? "", /at least one dancer, or enter a studio name/);
+  const { data: studioItems } = await parent.from("order_items").select("id, studio_name, dancer_ids").eq("studio_name", "Northside Dance Co");
+  assert.equal(studioItems?.length, 1);
+  assert.deepEqual(studioItems![0].dancer_ids, []);
+  await parent.rpc("remove_from_cart", { item: studioItems![0].id });
+
+  // Organisers can close entries by hand (dates ignored), then go back to the dates.
+  const { data: otherClose } = await harbour.from("events").update({ entries_override: "closed" }).eq("id", MAIN_EVENT).select("id");
+  assert.deepEqual(otherClose ?? [], [], "another organiser can't close someone else's entries");
+  const { error: closeError } = await staff.from("events").update({ entries_override: "closed" }).eq("id", MAIN_EVENT);
+  assert.equal(closeError, null);
+  const whileClosed = await parent.rpc("add_to_cart", { sec: await section("12"), p_dancer_ids: [daisy], p_studio_name: "" });
+  assert.match(whileClosed.error?.message ?? "", /not open/);
+  await staff.from("events").update({ entries_override: "auto" }).eq("id", MAIN_EVENT);
+  const reopened = await parent.rpc("add_to_cart", { sec: await section("12"), p_dancer_ids: [daisy], p_studio_name: "" });
+  assert.equal(reopened.error, null);
+
+  // And open them by hand for an event with no entry dates (once it's published).
+  const { data: harbourEvent } = await harbour.from("events").update({ entries_override: "open", status: "published" }).eq("id", HARBOUR_EVENT).select("id");
+  assert.equal(harbourEvent?.length, 1);
+  const manualOpen = await parent.rpc("add_to_cart", { sec: harbourSection!.id, p_dancer_ids: [daisy], p_studio_name: "" });
+  assert.equal(manualOpen.error, null);
+});
+
+test("signed-out visitors can't use the cart", async () => {
+  const { error } = await anon().rpc("add_to_cart", { sec: "00000000-0000-4000-8000-000000000000", p_dancer_ids: [], p_studio_name: "" });
+  assert.ok(error);
+});
+
+// The local database's server key, read from `supabase status` so it isn't written in the code.
+const SECRET =
+  process.env.SUPABASE_SECRET_KEY ??
+  (JSON.parse(execSync("npx supabase status -o json", { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] })) as { SECRET_KEY: string }).SECRET_KEY;
+
+test("payments: only the website's server can mark a cart paid, and paid items become entries", async () => {
+  const parent = await signIn("parent@example.test");
+  const server = createClient(URL, SECRET, { auth: { persistSession: false } });
+  const sectionId = async (code: string) => (await parent.from("sections").select("id").eq("event_id", MAIN_EVENT).eq("code", code).single()).data!.id;
+
+  // The cart from the previous test has Daisy's solo in section 12. Add a studio entry.
+  await parent.rpc("add_to_cart", { sec: await sectionId("30"), p_dancer_ids: [], p_studio_name: "Northside Dance Co" });
+  const { data: cart } = await parent.from("orders").select("id, total_cents").eq("event_id", MAIN_EVENT).eq("status", "open").single();
+  assert.equal(cart!.total_cents, 2500 + 6000);
+
+  // Signed-in people can't record a checkout or mark their own cart paid.
+  const selfRecord = await parent.rpc("record_checkout", { p_order: cart!.id, p_provider: "square", p_reference: "SQ-1", p_amount_cents: 8500 });
+  assert.ok(selfRecord.error);
+  const selfPay = await parent.rpc("complete_order", { p_order: cart!.id, p_provider: "square", p_reference: "SQ-1", p_paid_cents: 8500, p_receipt_url: "" });
+  assert.ok(selfPay.error);
+
+  // The checkout has to be for the cart's current total.
+  const wrongAmount = await server.rpc("record_checkout", { p_order: cart!.id, p_provider: "square", p_reference: "SQ-1", p_amount_cents: 100 });
+  assert.match(wrongAmount.error?.message ?? "", /cart has changed/);
+  assert.equal((await server.rpc("record_checkout", { p_order: cart!.id, p_provider: "square", p_reference: "SQ-1", p_amount_cents: 8500 })).error, null);
+
+  // Changing the cart cancels that checkout.
+  const { data: extra } = await parent.rpc("add_to_cart", { sec: await sectionId("15"), p_dancer_ids: [(await parent.from("dancers").select("id").eq("full_name", "Daisy Example").single()).data!.id], p_studio_name: "" });
+  await parent.rpc("remove_from_cart", { item: extra as string });
+  const stale = await server.rpc("complete_order", { p_order: cart!.id, p_provider: "square", p_reference: "SQ-1", p_paid_cents: 8500, p_receipt_url: "" });
+  assert.match(stale.error?.message ?? "", /does not match the cart's checkout/);
+
+  // Paying the wrong amount is refused.
+  await server.rpc("record_checkout", { p_order: cart!.id, p_provider: "square", p_reference: "SQ-2", p_amount_cents: 8500 });
+  const underpaid = await server.rpc("complete_order", { p_order: cart!.id, p_provider: "square", p_reference: "SQ-2", p_paid_cents: 8000, p_receipt_url: "" });
+  assert.match(underpaid.error?.message ?? "", /does not match the cart total/);
+
+  // The right payment marks it paid, once.
+  const paid = await server.rpc("complete_order", { p_order: cart!.id, p_provider: "square", p_reference: "SQ-2", p_paid_cents: 8500, p_receipt_url: "https://square.test/r" });
+  assert.equal(paid.error, null);
+  assert.match(paid.data as string, /^INS-\d+$/);
+  const again = await server.rpc("complete_order", { p_order: cart!.id, p_provider: "square", p_reference: "SQ-2", p_paid_cents: 8500, p_receipt_url: "" });
+  assert.equal(again.data, paid.data, "returning to the site twice gives the same receipt");
+
+  const { data: order } = await parent.from("orders").select("status, receipt_number, paid_amount_cents, order_items(entry_id)").eq("id", cart!.id).single();
+  assert.equal(order!.status, "paid");
+  assert.equal(order!.paid_amount_cents, 8500);
+  assert.ok(order!.order_items.every((i) => i.entry_id));
+
+  // The entries are in the organiser's program, without item numbers yet.
+  const staff = await signIn("staff@inspire.test");
+  const { data: newEntries } = await staff.from("entries").select("performer_name, studio_name, item_number, sections(code), entry_dancers(dancer_id)").eq("event_id", MAIN_EVENT).is("item_number", null).order("position");
+  assert.deepEqual(
+    newEntries!.map((e) => [(e.sections as unknown as { code: string }).code, e.performer_name, e.studio_name, e.entry_dancers.length]),
+    [["12", "Daisy Example", "Starlight Dance Academy", 1], ["30", "Northside Dance Co", "Northside Dance Co", 0]],
+  );
+
+  // A paid cart can't be changed, and a dancer with paid entries is kept.
+  const { data: daisy } = await parent.from("dancers").select("id").eq("full_name", "Daisy Example").single();
+  assert.match((await parent.rpc("delete_dancer", { dancer: daisy!.id })).error?.message ?? "", /paid entries/);
+  const { data: items } = await parent.from("order_items").select("id").eq("order_id", cart!.id);
+  assert.ok((await parent.rpc("remove_from_cart", { item: items![0].id })).error);
 });

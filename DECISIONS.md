@@ -45,3 +45,32 @@ Each entry records what was decided, why, and the date.
 
 ## 2026-11-25 – Scratch rather than delete
 **Decision:** Withdrawn items are "scratched" and stay in the records. Delete is only for mistakes and asks for confirmation.
+
+## 2026-11-26 – Who enters, and what we keep about dancers
+**Decision:** Any account can add dancers and enter them, so parents can enter their own children and studios can enter their whole team. For each dancer we keep only the name, date of birth (to check age groups) and studio. The account holder is the contact.
+**Why:** Matches how eisteddfods usually run, and keeps as little information about children as possible. Confirmed by Rick on 2026-11-26.
+
+## 2026-11-26 – Entries are created when paid
+**Decision:** Entries sit in a cart until paid. Only paid cart items become program entries, without an item number until the organiser numbers the program. Nobody can mark a cart paid or change a fee directly; only the database's own checks can.
+**Why:** Keeps the program free of unpaid entries and stops fee tampering.
+
+## 2026-11-26 – Newer Supabase projects need explicit access grants
+**Decision:** Every database change file grants the website access to new tables and functions explicitly.
+**Why:** The live Supabase project doesn't grant access by default (found while going live).
+
+## 2026-11-26 – Studio entries need only the studio name
+**Decision:** There are two ways to enter. Parents (or studios who want ages checked) pick their saved dancers. A dance studio can instead make a "studio entry" with just the studio name. No dancer names or birth dates are stored for studio entries, so the portal doesn't check ages or dancer numbers for them. Competitors don't give a routine title when entering.
+**Why:** Rick asked for this on 2026-11-26. It stores the least information about children. Organisers can still check ages at the venue. Confirmed by Rick on 2026-11-26.
+
+## 2026-11-26 – Organisers can open or close entries by hand
+**Decision:** Entries open and close automatically on the event's dates. An organiser (or the Inspire admin) can override this on the event page: "open now", "closed now", or back to automatic.
+**Why:** Rick asked for a way to reopen or close entries when needed.
+
+## 2026-11-26 – Square and PayPal
+**Decision:** Checkout offers two ways to pay: Square (cards, Apple Pay, Google Pay) and PayPal. Both are set up in test mode first. Keys go in Vercel's environment variables, never in chat or the code. Each paid cart records which provider was used and its payment reference, so payments can be matched up in either account.
+**Why:** Rick asked for PayPal as well as Square on 2026-11-26.
+
+## 2026-11-26 – How online payments work
+**Decision:** Competitors pay on Square's or PayPal's own secure page (we never see card details). When they come back, the website asks Square or PayPal directly whether the money arrived and how much, and only then marks the cart paid. Paying puts each item into the organiser's program (no item number yet) and gives a receipt number like INS-1001. Changing the cart after starting a payment cancels that payment attempt, so the amount paid always matches the cart. Only the website's server key can mark a cart paid. No new libraries: the website talks to Square and PayPal directly.
+**Why:** Safest and simplest option. No card data on our site, and nothing a competitor does in their browser can mark a cart paid.
+**Note:** For now all payments go into Inspire's own Square and PayPal accounts, including for other organisers' events. Paying other organisers out (or connecting their own accounts) is a later decision.

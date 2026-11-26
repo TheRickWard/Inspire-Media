@@ -23,7 +23,7 @@ export async function GET(_request: Request, ctx: RouteContext<"/org/[orgId]/eve
   const csv = programToCsv(
     (entries ?? []).map((e, i) => ({
       position: i + 1,
-      item_number: e.item_number,
+      item_number: e.item_number ?? "",
       section_code: e.sections?.code ?? "",
       section_name: e.sections?.name ?? "",
       session: e.sections?.event_sessions?.name ?? "",

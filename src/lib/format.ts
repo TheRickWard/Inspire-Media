@@ -13,3 +13,37 @@ export function formatDateRange(start: string, end: string): string {
 export function formatMoney(cents: number): string {
   return new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(cents / 100);
 }
+
+/** Today's date in Sydney, as "YYYY-MM-DD". */
+export function todayInSydney(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+}
+
+/** Age in whole years on a given date ("YYYY-MM-DD" strings). */
+export function ageOn(dateOfBirth: string, onDate: string): number {
+  const [by, bm, bd] = dateOfBirth.split("-").map(Number);
+  const [y, m, d] = onDate.split("-").map(Number);
+  return y - by - (m < bm || (m === bm && d < bd) ? 1 : 0);
+}
+
+/** "10 & under", "8–12", "13 & over" or "" from a section's age limits. */
+export function describeAges(minAge: number | null, maxAge: number | null): string {
+  if (minAge != null && maxAge != null) return minAge === maxAge ? `${minAge} years` : `${minAge}–${maxAge} years`;
+  if (maxAge != null) return `${maxAge} & under`;
+  if (minAge != null) return `${minAge} & over`;
+  return "";
+}
+
+const dateTimeFmt = new Intl.DateTimeFormat("en-AU", {
+  timeZone: "Australia/Sydney",
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+});
+
+/** A moment in time, shown in Sydney time, e.g. "26 Nov 2026, 5:30 pm". */
+export function formatDateTime(value: string | null | undefined): string {
+  return value ? dateTimeFmt.format(new Date(value)) : "";
+}

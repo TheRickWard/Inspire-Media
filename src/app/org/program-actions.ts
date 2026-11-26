@@ -109,7 +109,18 @@ export async function deleteEntry(orgId: string, eventId: string, entryId: strin
 
 // ---------------------------------------------------------------- sections and sessions
 
+const optionalWhole = (what: string) =>
+  z
+    .string()
+    .trim()
+    .transform((v) => (v === "" ? null : Number(v)))
+    .pipe(z.number({ error: `${what} must be a whole number.` }).int(`${what} must be a whole number.`).min(0).max(120).nullable());
+
 const sectionSchema = z.object({
+  min_age: optionalWhole("Minimum age"),
+  max_age: optionalWhole("Maximum age"),
+  min_dancers: optionalWhole("Minimum dancers"),
+  max_dancers: optionalWhole("Maximum dancers"),
   code: text(20).min(1, "Please enter a section number."),
   name: text(200).min(1, "Please enter the section name."),
   session_id: z.string().transform((v) => (v === "" ? null : v)).pipe(z.uuid().nullable()),
@@ -132,10 +143,17 @@ function readSection(formData: FormData) {
     genre: get("genre"),
     age_group: get("age_group"),
     entry_fee: get("entry_fee"),
+    min_age: get("min_age"),
+    max_age: get("max_age"),
+    min_dancers: get("min_dancers"),
+    max_dancers: get("max_dancers"),
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message } as const;
-  const { entry_fee, ...rest } = parsed.data;
-  return { values: { ...rest, entry_fee_cents: Math.round(entry_fee * 100) } } as const;
+  const { entry_fee, min_dancers, ...rest } = parsed.data;
+  if (rest.min_age != null && rest.max_age != null && rest.min_age > rest.max_age) return { error: "Minimum age can't be more than the maximum age." } as const;
+  const minD = Math.max(1, min_dancers ?? 1);
+  if (rest.max_dancers != null && (rest.max_dancers < 1 || rest.max_dancers < minD)) return { error: "Maximum dancers must be at least the minimum." } as const;
+  return { values: { ...rest, min_dancers: minD, entry_fee_cents: Math.round(entry_fee * 100) } } as const;
 }
 
 export async function createSection(eventId: string, _prev: FormState, formData: FormData): Promise<FormState> {

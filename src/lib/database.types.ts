@@ -23,19 +23,45 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "entries": {
+            "dancers": {
                   Row: {
-                    "created_at": string,"event_id": string,"id": string,"is_late_entry": boolean,"item_number": string,"performer_name": string,"position": number,"routine_title": string,"section_id": string,"status": Database["public"]['Enums']["entry_status"],"studio_name": string
+                    "created_at": string,"date_of_birth": string,"full_name": string,"id": string,"owner_id": string,"studio_name": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"event_id": string,"id"?: string,"is_late_entry"?: boolean,"item_number": string,"performer_name": string,"position"?: number,"routine_title"?: string,"section_id": string,"status"?: Database["public"]['Enums']["entry_status"],"studio_name"?: string
+                    "created_at"?: string,"date_of_birth": string,"full_name": string,"id"?: string,"owner_id": string,"studio_name"?: string
                   }
                   Update: {
-                    "created_at"?: string,"event_id"?: string,"id"?: string,"is_late_entry"?: boolean,"item_number"?: string,"performer_name"?: string,"position"?: number,"routine_title"?: string,"section_id"?: string,"status"?: Database["public"]['Enums']["entry_status"],"studio_name"?: string
+                    "created_at"?: string,"date_of_birth"?: string,"full_name"?: string,"id"?: string,"owner_id"?: string,"studio_name"?: string
                   }
                   Relationships: [
                     {
+      foreignKeyName: "dancers_owner_id_fkey"
+      columns: ["owner_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"entries": {
+                  Row: {
+                    "created_at": string,"entered_by": string | null,"event_id": string,"id": string,"is_late_entry": boolean,"item_number": string | null,"performer_name": string,"position": number,"routine_title": string,"section_id": string,"status": Database["public"]['Enums']["entry_status"],"studio_name": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"entered_by"?: string | null,"event_id": string,"id"?: string,"is_late_entry"?: boolean,"item_number"?: string | null,"performer_name": string,"position"?: number,"routine_title"?: string,"section_id": string,"status"?: Database["public"]['Enums']["entry_status"],"studio_name"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"entered_by"?: string | null,"event_id"?: string,"id"?: string,"is_late_entry"?: boolean,"item_number"?: string | null,"performer_name"?: string,"position"?: number,"routine_title"?: string,"section_id"?: string,"status"?: Database["public"]['Enums']["entry_status"],"studio_name"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "entries_entered_by_fkey"
+      columns: ["entered_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "entries_event_id_fkey"
       columns: ["event_id"]
 isOneToOne: false
@@ -46,6 +72,32 @@ isOneToOne: false
       columns: ["section_id"]
 isOneToOne: false
       referencedRelation: "sections"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"entry_dancers": {
+                  Row: {
+                    "dancer_id": string,"entry_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "dancer_id": string,"entry_id": string
+                  }
+                  Update: {
+                    "dancer_id"?: string,"entry_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "entry_dancers_dancer_id_fkey"
+      columns: ["dancer_id"]
+isOneToOne: false
+      referencedRelation: "dancers"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "entry_dancers_entry_id_fkey"
+      columns: ["entry_id"]
+isOneToOne: false
+      referencedRelation: "entries"
       referencedColumns: ["id"]
     }
                   ]
@@ -71,14 +123,14 @@ isOneToOne: false
                   ]
                 },"events": {
                   Row: {
-                    "contact_email": string,"contact_phone": string,"created_at": string,"description": string,"ends_on": string,"entries_close_on": string | null,"entries_open_on": string | null,"id": string,"music_due_on": string | null,"name": string,"organisation_id": string,"starts_on": string,"status": Database["public"]['Enums']["event_status"],"venue_address": string,"venue_name": string
+                    "age_as_at": string | null,"contact_email": string,"contact_phone": string,"created_at": string,"description": string,"ends_on": string,"entries_close_on": string | null,"entries_open_on": string | null,"entries_override": string,"id": string,"music_due_on": string | null,"name": string,"organisation_id": string,"starts_on": string,"status": Database["public"]['Enums']["event_status"],"venue_address": string,"venue_name": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "contact_email"?: string,"contact_phone"?: string,"created_at"?: string,"description"?: string,"ends_on": string,"entries_close_on"?: string | null,"entries_open_on"?: string | null,"id"?: string,"music_due_on"?: string | null,"name": string,"organisation_id": string,"starts_on": string,"status"?: Database["public"]['Enums']["event_status"],"venue_address"?: string,"venue_name"?: string
+                    "age_as_at"?: string | null,"contact_email"?: string,"contact_phone"?: string,"created_at"?: string,"description"?: string,"ends_on": string,"entries_close_on"?: string | null,"entries_open_on"?: string | null,"entries_override"?: string,"id"?: string,"music_due_on"?: string | null,"name": string,"organisation_id": string,"starts_on": string,"status"?: Database["public"]['Enums']["event_status"],"venue_address"?: string,"venue_name"?: string
                   }
                   Update: {
-                    "contact_email"?: string,"contact_phone"?: string,"created_at"?: string,"description"?: string,"ends_on"?: string,"entries_close_on"?: string | null,"entries_open_on"?: string | null,"id"?: string,"music_due_on"?: string | null,"name"?: string,"organisation_id"?: string,"starts_on"?: string,"status"?: Database["public"]['Enums']["event_status"],"venue_address"?: string,"venue_name"?: string
+                    "age_as_at"?: string | null,"contact_email"?: string,"contact_phone"?: string,"created_at"?: string,"description"?: string,"ends_on"?: string,"entries_close_on"?: string | null,"entries_open_on"?: string | null,"entries_override"?: string,"id"?: string,"music_due_on"?: string | null,"name"?: string,"organisation_id"?: string,"starts_on"?: string,"status"?: Database["public"]['Enums']["event_status"],"venue_address"?: string,"venue_name"?: string
                   }
                   Relationships: [
                     {
@@ -86,6 +138,64 @@ isOneToOne: false
       columns: ["organisation_id"]
 isOneToOne: false
       referencedRelation: "organisations"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"order_items": {
+                  Row: {
+                    "created_at": string,"dancer_ids": (string)[],"entry_id": string | null,"fee_cents": number,"id": string,"order_id": string,"section_id": string,"studio_name": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"dancer_ids"?: (string)[],"entry_id"?: string | null,"fee_cents": number,"id"?: string,"order_id": string,"section_id": string,"studio_name"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"dancer_ids"?: (string)[],"entry_id"?: string | null,"fee_cents"?: number,"id"?: string,"order_id"?: string,"section_id"?: string,"studio_name"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "order_items_entry_id_fkey"
+      columns: ["entry_id"]
+isOneToOne: false
+      referencedRelation: "entries"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "order_items_order_id_fkey"
+      columns: ["order_id"]
+isOneToOne: false
+      referencedRelation: "orders"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "order_items_section_id_fkey"
+      columns: ["section_id"]
+isOneToOne: false
+      referencedRelation: "sections"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"orders": {
+                  Row: {
+                    "checkout_amount_cents": number | null,"checkout_provider": string | null,"checkout_reference": string | null,"created_at": string,"event_id": string,"id": string,"paid_amount_cents": number | null,"paid_at": string | null,"payment_provider": string | null,"payment_reference": string | null,"provider_receipt_url": string | null,"receipt_number": string | null,"status": Database["public"]['Enums']["order_status"],"total_cents": number,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "checkout_amount_cents"?: number | null,"checkout_provider"?: string | null,"checkout_reference"?: string | null,"created_at"?: string,"event_id": string,"id"?: string,"paid_amount_cents"?: number | null,"paid_at"?: string | null,"payment_provider"?: string | null,"payment_reference"?: string | null,"provider_receipt_url"?: string | null,"receipt_number"?: string | null,"status"?: Database["public"]['Enums']["order_status"],"total_cents"?: number,"user_id": string
+                  }
+                  Update: {
+                    "checkout_amount_cents"?: number | null,"checkout_provider"?: string | null,"checkout_reference"?: string | null,"created_at"?: string,"event_id"?: string,"id"?: string,"paid_amount_cents"?: number | null,"paid_at"?: string | null,"payment_provider"?: string | null,"payment_reference"?: string | null,"provider_receipt_url"?: string | null,"receipt_number"?: string | null,"status"?: Database["public"]['Enums']["order_status"],"total_cents"?: number,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "orders_event_id_fkey"
+      columns: ["event_id"]
+isOneToOne: false
+      referencedRelation: "events"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "orders_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
       referencedColumns: ["id"]
     }
                   ]
@@ -145,14 +255,14 @@ isOneToOne: false
                   ]
                 },"sections": {
                   Row: {
-                    "age_group": string,"code": string,"created_at": string,"entry_fee_cents": number,"event_id": string,"genre": string,"id": string,"name": string,"position": number,"session_id": string | null
+                    "age_group": string,"code": string,"created_at": string,"entry_fee_cents": number,"event_id": string,"genre": string,"id": string,"max_age": number | null,"max_dancers": number | null,"min_age": number | null,"min_dancers": number,"name": string,"position": number,"session_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "age_group"?: string,"code": string,"created_at"?: string,"entry_fee_cents"?: number,"event_id": string,"genre"?: string,"id"?: string,"name": string,"position"?: number,"session_id"?: string | null
+                    "age_group"?: string,"code": string,"created_at"?: string,"entry_fee_cents"?: number,"event_id": string,"genre"?: string,"id"?: string,"max_age"?: number | null,"max_dancers"?: number | null,"min_age"?: number | null,"min_dancers"?: number,"name": string,"position"?: number,"session_id"?: string | null
                   }
                   Update: {
-                    "age_group"?: string,"code"?: string,"created_at"?: string,"entry_fee_cents"?: number,"event_id"?: string,"genre"?: string,"id"?: string,"name"?: string,"position"?: number,"session_id"?: string | null
+                    "age_group"?: string,"code"?: string,"created_at"?: string,"entry_fee_cents"?: number,"event_id"?: string,"genre"?: string,"id"?: string,"max_age"?: number | null,"max_dancers"?: number | null,"min_age"?: number | null,"min_dancers"?: number,"name"?: string,"position"?: number,"session_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -181,7 +291,25 @@ isOneToOne: false
 "add_organisation_member":
 { Args: { "member_email": string,"member_role": Database["public"]['Enums']["org_role"],"org": string }; Returns: undefined
                            },
+"add_to_cart":
+{ Args: { "p_dancer_ids": (string)[],"p_studio_name": string,"sec": string }; Returns: string
+                           },
+"age_on":
+{ Args: { "dob": string,"on_date": string }; Returns: number
+                           },
 "can_manage_event":
+{ Args: { "ev": string }; Returns: boolean
+                           },
+"complete_order":
+{ Args: { "p_order": string,"p_paid_cents": number,"p_provider": string,"p_receipt_url": string,"p_reference": string }; Returns: string
+                           },
+"dancer_entered_in_my_event":
+{ Args: { "dancer": string }; Returns: boolean
+                           },
+"delete_dancer":
+{ Args: { "dancer": string }; Returns: undefined
+                           },
+"entries_are_open":
 { Args: { "ev": string }; Returns: boolean
                            },
 "import_program":
@@ -201,10 +329,19 @@ isOneToOne: false
                            },
 "move_entry":
 { Args: { "direction": string,"entry": string }; Returns: undefined
+                           },
+"owns_dancer":
+{ Args: { "dancer": string }; Returns: boolean
+                           },
+"record_checkout":
+{ Args: { "p_amount_cents": number,"p_order": string,"p_provider": string,"p_reference": string }; Returns: undefined
+                           },
+"remove_from_cart":
+{ Args: { "item": string }; Returns: undefined
                            }
           }
           Enums: {
-            "entry_status": "entered"|"scratched","event_status": "draft"|"published","org_role": "owner"|"staff"
+            "entry_status": "entered"|"scratched","event_status": "draft"|"published","order_status": "open"|"paid"|"cancelled","org_role": "owner"|"staff"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -324,7 +461,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "entry_status": ["entered", "scratched"],"event_status": ["draft", "published"],"org_role": ["owner", "staff"]
+            "entry_status": ["entered", "scratched"],"event_status": ["draft", "published"],"order_status": ["open", "paid", "cancelled"],"org_role": ["owner", "staff"]
           }
         }
 } as const

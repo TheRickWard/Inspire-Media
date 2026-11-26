@@ -87,7 +87,7 @@ async function Program({ params }: { params: Promise<{ orgId: string; eventId: s
                   <tbody className="divide-y divide-slate-100">
                     {items.map((e, i) => (
                       <tr key={e.id} className={e.status === "scratched" ? "bg-red-50/60 text-slate-400" : ""}>
-                        <td className="px-4 py-2 font-mono font-semibold">{e.item_number}</td>
+                        <td className="px-4 py-2 font-mono font-semibold">{e.item_number ?? <span className="font-sans text-xs font-normal text-slate-400">not numbered</span>}</td>
                         <td className="px-4 py-2">
                           <span className={e.status === "scratched" ? "line-through" : ""}>{e.performer_name}</span>
                           {e.status === "scratched" && <span className="ml-2 rounded bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-800">Scratched</span>}

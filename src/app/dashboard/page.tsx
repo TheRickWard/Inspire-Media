@@ -43,11 +43,23 @@ async function Dashboard() {
         </section>
       )}
 
+      <section className="grid gap-4 sm:grid-cols-2">
+        <div className={card}>
+          <h2 className={h2}>My dancers</h2>
+          <p className="mt-1 text-sm text-slate-600">Add your dancers once, then enter them in any competition.</p>
+          <Link href="/dancers" className={`${link} mt-2 inline-block text-sm font-medium`}>Manage dancers →</Link>
+        </div>
+        <div className={card}>
+          <h2 className={h2}>Enter a competition</h2>
+          <p className="mt-1 text-sm text-slate-600">See which competitions are taking entries and fill your cart.</p>
+          <Link href="/enter" className={`${link} mt-2 inline-block text-sm font-medium`}>Enter now →</Link>
+        </div>
+      </section>
+
       <section className={card}>
-        <h2 className={h2}>My entries</h2>
-        <p className="mt-1 text-sm text-slate-600">
-          Entering competitions, paying, uploading music and downloading critiques: coming soon.
-        </p>
+        <h2 className={h2}>My entries and receipts</h2>
+        <p className="mt-1 text-sm text-slate-600">See what you&apos;ve paid for and print receipts. Uploading music and downloading critiques: coming soon.</p>
+        <Link href="/receipts" className={`${link} mt-2 inline-block text-sm font-medium`}>My receipts →</Link>
       </section>
     </div>
   );

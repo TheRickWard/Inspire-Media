@@ -9,6 +9,7 @@ type EventValues = {
   entries_open_on?: string | null;
   entries_close_on?: string | null;
   music_due_on?: string | null;
+  age_as_at?: string | null;
   contact_email?: string;
   contact_phone?: string;
   description?: string;
@@ -40,6 +41,9 @@ export function EventFields({ values = {} }: { values?: EventValues }) {
         <Field name="entries_open_on" text="Entries open" type="date" value={values.entries_open_on} />
         <Field name="entries_close_on" text="Entries close" type="date" value={values.entries_close_on} />
         <Field name="music_due_on" text="Music upload due" type="date" value={values.music_due_on} />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Field name="age_as_at" text="Ages worked out as at (blank = first day)" type="date" value={values.age_as_at} />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field name="contact_email" text="Contact email" type="email" value={values.contact_email} />

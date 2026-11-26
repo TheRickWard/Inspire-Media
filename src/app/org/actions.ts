@@ -22,6 +22,7 @@ const eventSchema = z.object({
   entries_open_on: optionalDate,
   entries_close_on: optionalDate,
   music_due_on: optionalDate,
+  age_as_at: optionalDate,
   contact_email: z.union([z.literal(""), z.email("That contact email doesn't look right.")]),
   contact_phone: z.string().trim().max(50),
   description: z.string().trim().max(5000),
@@ -38,6 +39,7 @@ function readEvent(formData: FormData) {
     entries_open_on: get("entries_open_on"),
     entries_close_on: get("entries_close_on"),
     music_due_on: get("music_due_on"),
+    age_as_at: get("age_as_at"),
     contact_email: get("contact_email").trim(),
     contact_phone: get("contact_phone"),
     description: get("description"),
@@ -91,6 +93,29 @@ export async function setEventStatus(orgId: string, eventId: string, status: "dr
   if (!data?.length) return fail("You don't have permission to change this event.");
   refresh();
   return done(status === "published" ? "Published. The public event page is now live." : "Moved back to draft. The public page is hidden.");
+}
+
+const overrideMessages = {
+  auto: "Entries now follow the open and close dates.",
+  open: "Entries are open now, whatever the dates say.",
+  closed: "Entries are closed now, whatever the dates say.",
+} as const;
+
+export async function setEntriesOverride(orgId: string, eventId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  await requireUser();
+  const mode = z.enum(["auto", "open", "closed"]).safeParse(formData.get("entries_override")).data;
+  if (!mode) return fail("Please choose an option.");
+  const supabase = await createSupabase();
+  const { data, error } = await supabase
+    .from("events")
+    .update({ entries_override: mode })
+    .eq("id", eventId)
+    .eq("organisation_id", orgId)
+    .select("id");
+  if (error) return fail(friendlyDbError(error.message));
+  if (!data?.length) return fail("You don't have permission to change this event.");
+  refresh();
+  return done(overrideMessages[mode]);
 }
 
 export async function addMember(orgId: string, _prev: FormState, formData: FormData): Promise<FormState> {
