@@ -123,14 +123,14 @@ isOneToOne: false
                   ]
                 },"events": {
                   Row: {
-                    "age_as_at": string | null,"contact_email": string,"contact_phone": string,"created_at": string,"description": string,"ends_on": string,"entries_close_on": string | null,"entries_open_on": string | null,"id": string,"music_due_on": string | null,"name": string,"organisation_id": string,"starts_on": string,"status": Database["public"]['Enums']["event_status"],"venue_address": string,"venue_name": string
+                    "age_as_at": string | null,"contact_email": string,"contact_phone": string,"created_at": string,"description": string,"ends_on": string,"entries_close_on": string | null,"entries_open_on": string | null,"entries_override": string,"id": string,"music_due_on": string | null,"name": string,"organisation_id": string,"starts_on": string,"status": Database["public"]['Enums']["event_status"],"venue_address": string,"venue_name": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "age_as_at"?: string | null,"contact_email"?: string,"contact_phone"?: string,"created_at"?: string,"description"?: string,"ends_on": string,"entries_close_on"?: string | null,"entries_open_on"?: string | null,"id"?: string,"music_due_on"?: string | null,"name": string,"organisation_id": string,"starts_on": string,"status"?: Database["public"]['Enums']["event_status"],"venue_address"?: string,"venue_name"?: string
+                    "age_as_at"?: string | null,"contact_email"?: string,"contact_phone"?: string,"created_at"?: string,"description"?: string,"ends_on": string,"entries_close_on"?: string | null,"entries_open_on"?: string | null,"entries_override"?: string,"id"?: string,"music_due_on"?: string | null,"name": string,"organisation_id": string,"starts_on": string,"status"?: Database["public"]['Enums']["event_status"],"venue_address"?: string,"venue_name"?: string
                   }
                   Update: {
-                    "age_as_at"?: string | null,"contact_email"?: string,"contact_phone"?: string,"created_at"?: string,"description"?: string,"ends_on"?: string,"entries_close_on"?: string | null,"entries_open_on"?: string | null,"id"?: string,"music_due_on"?: string | null,"name"?: string,"organisation_id"?: string,"starts_on"?: string,"status"?: Database["public"]['Enums']["event_status"],"venue_address"?: string,"venue_name"?: string
+                    "age_as_at"?: string | null,"contact_email"?: string,"contact_phone"?: string,"created_at"?: string,"description"?: string,"ends_on"?: string,"entries_close_on"?: string | null,"entries_open_on"?: string | null,"entries_override"?: string,"id"?: string,"music_due_on"?: string | null,"name"?: string,"organisation_id"?: string,"starts_on"?: string,"status"?: Database["public"]['Enums']["event_status"],"venue_address"?: string,"venue_name"?: string
                   }
                   Relationships: [
                     {
@@ -143,14 +143,14 @@ isOneToOne: false
                   ]
                 },"order_items": {
                   Row: {
-                    "created_at": string,"dancer_ids": (string)[],"entry_id": string | null,"fee_cents": number,"id": string,"order_id": string,"routine_title": string,"section_id": string
+                    "created_at": string,"dancer_ids": (string)[],"entry_id": string | null,"fee_cents": number,"id": string,"order_id": string,"section_id": string,"studio_name": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"dancer_ids": (string)[],"entry_id"?: string | null,"fee_cents": number,"id"?: string,"order_id": string,"routine_title"?: string,"section_id": string
+                    "created_at"?: string,"dancer_ids"?: (string)[],"entry_id"?: string | null,"fee_cents": number,"id"?: string,"order_id": string,"section_id": string,"studio_name"?: string
                   }
                   Update: {
-                    "created_at"?: string,"dancer_ids"?: (string)[],"entry_id"?: string | null,"fee_cents"?: number,"id"?: string,"order_id"?: string,"routine_title"?: string,"section_id"?: string
+                    "created_at"?: string,"dancer_ids"?: (string)[],"entry_id"?: string | null,"fee_cents"?: number,"id"?: string,"order_id"?: string,"section_id"?: string,"studio_name"?: string
                   }
                   Relationships: [
                     {
@@ -292,13 +292,16 @@ isOneToOne: false
 { Args: { "member_email": string,"member_role": Database["public"]['Enums']["org_role"],"org": string }; Returns: undefined
                            },
 "add_to_cart":
-{ Args: { "p_dancer_ids": (string)[],"p_routine_title": string,"sec": string }; Returns: string
+{ Args: { "p_dancer_ids": (string)[],"p_studio_name": string,"sec": string }; Returns: string
                            },
 "age_on":
 { Args: { "dob": string,"on_date": string }; Returns: number
                            },
 "can_manage_event":
 { Args: { "ev": string }; Returns: boolean
+                           },
+"dancer_entered_in_my_event":
+{ Args: { "dancer": string }; Returns: boolean
                            },
 "delete_dancer":
 { Args: { "dancer": string }; Returns: undefined
@@ -323,6 +326,9 @@ isOneToOne: false
                            },
 "move_entry":
 { Args: { "direction": string,"entry": string }; Returns: undefined
+                           },
+"owns_dancer":
+{ Args: { "dancer": string }; Returns: boolean
                            },
 "remove_from_cart":
 { Args: { "item": string }; Returns: undefined

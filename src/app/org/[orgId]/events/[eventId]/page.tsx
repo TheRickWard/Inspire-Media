@@ -5,7 +5,9 @@ import { ActionForm } from "@/components/ActionForm";
 import { EventFields } from "@/components/EventFields";
 import { EventNav } from "@/components/EventNav";
 import { buttonSecondary, card, h2, link, muted } from "@/components/ui";
-import { setEventStatus, updateEvent } from "@/app/org/actions";
+import { setEntriesOverride, setEventStatus, updateEvent } from "@/app/org/actions";
+import { entriesStatus } from "@/lib/entries";
+import { todayInSydney } from "@/lib/format";
 
 async function EventDetails({ params }: { params: Promise<{ orgId: string; eventId: string }> }) {
   const { orgId, eventId } = await params;
@@ -16,6 +18,8 @@ async function EventDetails({ params }: { params: Promise<{ orgId: string; event
     supabase.from("sections").select("id", { count: "exact", head: true }).eq("event_id", eventId),
   ]);
   const published = event.status === "published";
+  const entries = entriesStatus(event, todayInSydney());
+  const override = event.entries_override;
 
   return (
     <div className="space-y-6">
@@ -48,6 +52,32 @@ async function EventDetails({ params }: { params: Promise<{ orgId: string; event
             Download program CSV (for playback and critiques)
           </a>
         </div>
+      </section>
+
+      <section className={`${card} space-y-3`}>
+        <h2 className={h2}>Online entries</h2>
+        <p className="text-sm">
+          <span className={entries.open ? "font-semibold text-emerald-700" : "font-semibold text-slate-700"}>{entries.message}.</span>{" "}
+          {override === "auto"
+            ? "Entries open and close by themselves on the dates in the event details."
+            : "You've set this by hand, so the dates are being ignored."}
+          {!published && " Competitors can only enter once the event is published."}
+        </p>
+        <ActionForm action={setEntriesOverride.bind(null, orgId, eventId)} submitLabel="Save">
+          <fieldset className="space-y-2 text-sm">
+            <legend className="sr-only">When entries are open</legend>
+            {[
+              ["auto", "Use the open and close dates (automatic)"],
+              ["open", "Open entries now, whatever the dates say"],
+              ["closed", "Close entries now, whatever the dates say"],
+            ].map(([value, text]) => (
+              <label key={value} className="flex items-center gap-2">
+                <input type="radio" name="entries_override" value={value} defaultChecked={override === value} className="h-4 w-4 accent-brand-purple" />
+                {text}
+              </label>
+            ))}
+          </fieldset>
+        </ActionForm>
       </section>
 
       <section className={card}>

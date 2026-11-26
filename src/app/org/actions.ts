@@ -95,6 +95,29 @@ export async function setEventStatus(orgId: string, eventId: string, status: "dr
   return done(status === "published" ? "Published. The public event page is now live." : "Moved back to draft. The public page is hidden.");
 }
 
+const overrideMessages = {
+  auto: "Entries now follow the open and close dates.",
+  open: "Entries are open now, whatever the dates say.",
+  closed: "Entries are closed now, whatever the dates say.",
+} as const;
+
+export async function setEntriesOverride(orgId: string, eventId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  await requireUser();
+  const mode = z.enum(["auto", "open", "closed"]).safeParse(formData.get("entries_override")).data;
+  if (!mode) return fail("Please choose an option.");
+  const supabase = await createSupabase();
+  const { data, error } = await supabase
+    .from("events")
+    .update({ entries_override: mode })
+    .eq("id", eventId)
+    .eq("organisation_id", orgId)
+    .select("id");
+  if (error) return fail(friendlyDbError(error.message));
+  if (!data?.length) return fail("You don't have permission to change this event.");
+  refresh();
+  return done(overrideMessages[mode]);
+}
+
 export async function addMember(orgId: string, _prev: FormState, formData: FormData): Promise<FormState> {
   await requireUser();
   const email = String(formData.get("email") ?? "").trim();

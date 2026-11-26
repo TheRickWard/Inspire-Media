@@ -6,7 +6,8 @@ import { createSupabase } from "@/lib/supabase/server";
 import { ActionForm } from "@/components/ActionForm";
 import { ageOn, describeAges, formatDate, formatDateRange, formatMoney, todayInSydney } from "@/lib/format";
 import { button, buttonSmall, card, h1, h2, input, label, link, muted } from "@/components/ui";
-import { addToCart, removeFromCart } from "../actions";
+import { entriesStatus } from "@/lib/entries";
+import { addStudioEntryToCart, addToCart, removeFromCart } from "../actions";
 
 function dancerRule(min: number, max: number | null) {
   if (max === 1) return "Solo";
@@ -22,25 +23,39 @@ async function EnterEvent({ params }: { params: Promise<{ eventId: string }> }) 
 
   const { data: event } = await supabase
     .from("events")
-    .select("id, name, venue_name, starts_on, ends_on, entries_open_on, entries_close_on, age_as_at, status")
+    .select("id, name, venue_name, starts_on, ends_on, entries_open_on, entries_close_on, entries_override, age_as_at, status")
     .eq("id", eventId)
     .eq("status", "published")
     .maybeSingle();
   if (!event) notFound();
 
   const today = todayInSydney();
-  const open = !!event.entries_open_on && !!event.entries_close_on && event.entries_open_on <= today && today <= event.entries_close_on;
+  const { open, message } = entriesStatus(event, today);
   const ageDate = event.age_as_at ?? event.starts_on;
 
   const [{ data: sections }, { data: dancers }, { data: order }] = await Promise.all([
     supabase.from("sections").select("id, code, name, entry_fee_cents, min_age, max_age, min_dancers, max_dancers").eq("event_id", eventId).order("position"),
     supabase.from("dancers").select("id, full_name, date_of_birth").eq("owner_id", user.id).order("full_name"),
-    supabase.from("orders").select("id, total_cents, order_items(id, section_id, routine_title, dancer_ids, fee_cents)").eq("event_id", eventId).eq("user_id", user.id).eq("status", "open").maybeSingle(),
+    supabase.from("orders").select("id, total_cents, order_items(id, section_id, dancer_ids, studio_name, fee_cents)").eq("event_id", eventId).eq("user_id", user.id).eq("status", "open").maybeSingle(),
   ]);
 
   const sectionById = new Map((sections ?? []).map((s) => [s.id, s]));
   const dancerById = new Map((dancers ?? []).map((d) => [d.id, d]));
   const items = order?.order_items ?? [];
+  const lastStudio = [...items].reverse().find((i) => i.studio_name)?.studio_name ?? "";
+
+  const sectionPicker = (
+    <label className="block">
+      <span className={label}>Section</span>
+      <select name="section_id" required className={input}>
+        {(sections ?? []).map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.code} – {s.name} ({formatMoney(s.entry_fee_cents)})
+          </option>
+        ))}
+      </select>
+    </label>
+  );
 
   return (
     <div className="space-y-6">
@@ -54,7 +69,7 @@ async function EnterEvent({ params }: { params: Promise<{ eventId: string }> }) 
       {!open && (
         <div className={`${card} border-amber-200 bg-amber-50`}>
           <p className="text-sm text-amber-900">
-            {event.entries_open_on && today < event.entries_open_on ? `Entries open ${formatDate(event.entries_open_on)}.` : "Entries for this competition are closed."}
+            {message}.
           </p>
         </div>
       )}
@@ -63,21 +78,13 @@ async function EnterEvent({ params }: { params: Promise<{ eventId: string }> }) 
         <div className="space-y-6 lg:col-span-2">
           {open && (
             <section className={card}>
-              <h2 className={`${h2} mb-3`}>Add an entry</h2>
+              <h2 className={`${h2} mb-1`}>Enter your dancers</h2>
+              <p className={`${muted} mb-3`}>For parents, and studios who want ages checked for each dancer.</p>
               {(dancers ?? []).length === 0 ? (
                 <p className="text-sm">First, <Link href="/dancers" className={link}>add your dancers</Link>. Then come back here to enter them.</p>
               ) : (
                 <ActionForm action={addToCart} submitLabel="Add to cart" pendingLabel="Adding…">
-                  <label className="block">
-                    <span className={label}>Section</span>
-                    <select name="section_id" required className={input}>
-                      {(sections ?? []).map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.code} – {s.name} ({formatMoney(s.entry_fee_cents)})
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  {sectionPicker}
                   <fieldset>
                     <legend className={label}>Dancer(s)</legend>
                     <div className="grid gap-2 sm:grid-cols-2">
@@ -90,12 +97,22 @@ async function EnterEvent({ params }: { params: Promise<{ eventId: string }> }) 
                     </div>
                     <p className={`${muted} mt-1`}><Link href="/dancers" className={link}>Add another dancer</Link></p>
                   </fieldset>
-                  <label className="block">
-                    <span className={label}>Routine title (optional)</span>
-                    <input name="routine_title" className={input} />
-                  </label>
                 </ActionForm>
               )}
+            </section>
+          )}
+
+          {open && (
+            <section className={card}>
+              <h2 className={`${h2} mb-1`}>Studio entry</h2>
+              <p className={`${muted} mb-3`}>For dance studios: only the studio name is needed. No dancer details are stored.</p>
+              <ActionForm action={addStudioEntryToCart} submitLabel="Add to cart" pendingLabel="Adding…">
+                {sectionPicker}
+                <label className="block">
+                  <span className={label}>Studio name</span>
+                  <input name="studio_name" required maxLength={200} defaultValue={lastStudio} className={input} />
+                </label>
+              </ActionForm>
             </section>
           )}
 
@@ -126,8 +143,9 @@ async function EnterEvent({ params }: { params: Promise<{ eventId: string }> }) 
                     <span className="font-medium">{s ? `${s.code} – ${s.name}` : "Section"}</span>
                     <span>{formatMoney(i.fee_cents)}</span>
                   </div>
-                  <p className="text-slate-600">{i.dancer_ids.map((id) => dancerById.get(id)?.full_name ?? "Dancer").join(" & ")}</p>
-                  {i.routine_title && <p className="text-slate-500">“{i.routine_title}”</p>}
+                  <p className="text-slate-600">
+                    {i.studio_name ? `Studio entry: ${i.studio_name}` : i.dancer_ids.map((id) => dancerById.get(id)?.full_name ?? "Dancer").join(" & ")}
+                  </p>
                   <ActionForm action={removeFromCart.bind(null, i.id)} submitLabel="Remove" pendingLabel="…" className="" buttonClassName={buttonSmall} />
                 </li>
               );

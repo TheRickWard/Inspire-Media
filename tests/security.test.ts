@@ -179,24 +179,24 @@ test("cart: checks dancer ownership, age, number of dancers and entry dates", as
   const section = async (code: string) => (await parent.from("sections").select("id").eq("event_id", MAIN_EVENT).eq("code", code).single()).data!.id;
 
   // Age limits: section 12 is 10 & under.
-  const tooOld = await parent.rpc("add_to_cart", { sec: await section("12"), p_dancer_ids: [max], p_routine_title: "" });
+  const tooOld = await parent.rpc("add_to_cart", { sec: await section("12"), p_dancer_ids: [max], p_studio_name: "" });
   assert.match(tooOld.error?.message ?? "", /Outside the age group.*Max Example \(12\)/);
 
   // Number of dancers: section 21 is a duo/trio.
-  const soloInDuo = await parent.rpc("add_to_cart", { sec: await section("21"), p_dancer_ids: [daisy], p_routine_title: "" });
+  const soloInDuo = await parent.rpc("add_to_cart", { sec: await section("21"), p_dancer_ids: [daisy], p_studio_name: "" });
   assert.match(soloInDuo.error?.message ?? "", /at least 2 dancers/);
-  const twoInSolo = await parent.rpc("add_to_cart", { sec: await section("12"), p_dancer_ids: [daisy, max], p_routine_title: "" });
+  const twoInSolo = await parent.rpc("add_to_cart", { sec: await section("12"), p_dancer_ids: [daisy, max], p_studio_name: "" });
   assert.match(twoInSolo.error?.message ?? "", /at most 1 dancers/);
 
   // Someone else's dancer.
   const organiser = await signIn("organiser@harbourdance.test");
-  const stolen = await organiser.rpc("add_to_cart", { sec: await section("12"), p_dancer_ids: [daisy], p_routine_title: "" });
+  const stolen = await organiser.rpc("add_to_cart", { sec: await section("12"), p_dancer_ids: [daisy], p_studio_name: "" });
   assert.match(stolen.error?.message ?? "", /only enter your own dancers/);
 
   // A good entry goes in the cart with the section's fee.
-  const ok = await parent.rpc("add_to_cart", { sec: await section("12"), p_dancer_ids: [daisy], p_routine_title: "Shine" });
+  const ok = await parent.rpc("add_to_cart", { sec: await section("12"), p_dancer_ids: [daisy], p_studio_name: "" });
   assert.equal(ok.error, null);
-  const duo = await parent.rpc("add_to_cart", { sec: await section("21"), p_dancer_ids: [daisy, max], p_routine_title: "Tap Happy" });
+  const duo = await parent.rpc("add_to_cart", { sec: await section("21"), p_dancer_ids: [daisy, max], p_studio_name: "" });
   assert.equal(duo.error, null);
   const { data: order } = await parent.from("orders").select("id, total_cents, status, order_items(id)").eq("event_id", MAIN_EVENT).eq("status", "open").single();
   assert.equal(order!.total_cents, 2500 + 3500);
@@ -226,11 +226,40 @@ test("cart: checks dancer ownership, age, number of dancers and entry dates", as
   // Entries closed: the Winter Classic has no entry dates.
   const harbour = await signIn("organiser@harbourdance.test");
   const { data: harbourSection } = await harbour.from("sections").select("id").eq("event_id", HARBOUR_EVENT).single();
-  const closed = await parent.rpc("add_to_cart", { sec: harbourSection?.id ?? "00000000-0000-4000-8000-000000000000", p_dancer_ids: [daisy], p_routine_title: "" });
+  const closed = await parent.rpc("add_to_cart", { sec: harbourSection?.id ?? "00000000-0000-4000-8000-000000000000", p_dancer_ids: [daisy], p_studio_name: "" });
   assert.ok(closed.error, "can't enter a draft or closed event");
+
+  // Studio entries: just a studio name, no dancers; not both, not neither.
+  const studio = await parent.rpc("add_to_cart", { sec: await section("30"), p_dancer_ids: [], p_studio_name: "Northside Dance Co" });
+  assert.equal(studio.error, null);
+  const both = await parent.rpc("add_to_cart", { sec: await section("12"), p_dancer_ids: [daisy], p_studio_name: "Northside Dance Co" });
+  assert.match(both.error?.message ?? "", /not both/);
+  const neither = await parent.rpc("add_to_cart", { sec: await section("12"), p_dancer_ids: [], p_studio_name: "  " });
+  assert.match(neither.error?.message ?? "", /at least one dancer, or enter a studio name/);
+  const { data: studioItems } = await parent.from("order_items").select("id, studio_name, dancer_ids").eq("studio_name", "Northside Dance Co");
+  assert.equal(studioItems?.length, 1);
+  assert.deepEqual(studioItems![0].dancer_ids, []);
+  await parent.rpc("remove_from_cart", { item: studioItems![0].id });
+
+  // Organisers can close entries by hand (dates ignored), then go back to the dates.
+  const { data: otherClose } = await harbour.from("events").update({ entries_override: "closed" }).eq("id", MAIN_EVENT).select("id");
+  assert.deepEqual(otherClose ?? [], [], "another organiser can't close someone else's entries");
+  const { error: closeError } = await staff.from("events").update({ entries_override: "closed" }).eq("id", MAIN_EVENT);
+  assert.equal(closeError, null);
+  const whileClosed = await parent.rpc("add_to_cart", { sec: await section("12"), p_dancer_ids: [daisy], p_studio_name: "" });
+  assert.match(whileClosed.error?.message ?? "", /not open/);
+  await staff.from("events").update({ entries_override: "auto" }).eq("id", MAIN_EVENT);
+  const reopened = await parent.rpc("add_to_cart", { sec: await section("12"), p_dancer_ids: [daisy], p_studio_name: "" });
+  assert.equal(reopened.error, null);
+
+  // And open them by hand for an event with no entry dates (once it's published).
+  const { data: harbourEvent } = await harbour.from("events").update({ entries_override: "open", status: "published" }).eq("id", HARBOUR_EVENT).select("id");
+  assert.equal(harbourEvent?.length, 1);
+  const manualOpen = await parent.rpc("add_to_cart", { sec: harbourSection!.id, p_dancer_ids: [daisy], p_studio_name: "" });
+  assert.equal(manualOpen.error, null);
 });
 
 test("signed-out visitors can't use the cart", async () => {
-  const { error } = await anon().rpc("add_to_cart", { sec: "00000000-0000-4000-8000-000000000000", p_dancer_ids: [], p_routine_title: "" });
+  const { error } = await anon().rpc("add_to_cart", { sec: "00000000-0000-4000-8000-000000000000", p_dancer_ids: [], p_studio_name: "" });
   assert.ok(error);
 });

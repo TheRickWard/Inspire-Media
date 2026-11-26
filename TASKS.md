@@ -13,6 +13,7 @@
 - [ ] Organiser: number all un-numbered entries in one click
 - [ ] Organiser chooses what competitor accounts are allowed to do
 - [ ] Filter competitions by date, location, age and genre (once there are several)
+- [ ] Maybe later: PayPal as a second payment option
 
 ### Portal stage 3 – Music
 - [ ] Competitors upload music per entry and confirm it is correct
@@ -37,6 +38,7 @@
 ## In Progress
 
 ## Done
+- [x] 2026-11-26 – Rick's changes: studio entries with just a studio name, no routine title when entering, organisers can open or close entries by hand
 - [x] 2026-11-26 – Stage 2 part 1: dancers (name, date of birth, studio), entering published events, cart with age and dancer-count checks, entries open/close on the event dates, section age and dancer limits, "ages as at" date, 3 more security tests
 - [x] 2026-11-26 – Portal live at https://inspire-media-tau.vercel.app; Rick signed in as Inspire admin. Fixed: plain message when settings are missing, accept either Supabase address, no sign-in loop without a profile, explicit database access grants for newer Supabase projects
 - [x] 2026-11-25 – Read the brief and requirements; agreed build order, many organisers, hosting, Square, and repository

@@ -57,3 +57,15 @@ Each entry records what was decided, why, and the date.
 ## 2026-11-26 – Newer Supabase projects need explicit access grants
 **Decision:** Every database change file grants the website access to new tables and functions explicitly.
 **Why:** The live Supabase project doesn't grant access by default (found while going live).
+
+## 2026-11-26 – Studio entries need only the studio name
+**Decision:** There are two ways to enter. Parents (or studios who want ages checked) pick their saved dancers. A dance studio can instead make a "studio entry" with just the studio name. No dancer names or birth dates are stored for studio entries, so the portal doesn't check ages or dancer numbers for them. Competitors don't give a routine title when entering.
+**Why:** Rick asked for this on 2026-11-26. It stores the least information about children. Organisers can still check ages at the venue. (Awaiting Rick's final confirmation on the decision card.)
+
+## 2026-11-26 – Organisers can open or close entries by hand
+**Decision:** Entries open and close automatically on the event's dates. An organiser (or the Inspire admin) can override this on the event page: "open now", "closed now", or back to automatic.
+**Why:** Rick asked for a way to reopen or close entries when needed.
+
+## 2026-11-26 – PayPal
+**Decision:** Launch with Square only. PayPal can be added later as a second option at checkout if competitors ask for it.
+**Why:** One payment provider is simpler to reconcile and costs less to run. Square already takes cards, Apple Pay and Google Pay.

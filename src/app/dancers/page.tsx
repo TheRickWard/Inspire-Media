@@ -19,7 +19,7 @@ function DancerFields({ values }: { values?: { full_name: string; date_of_birth:
         <input name="date_of_birth" type="date" required defaultValue={values?.date_of_birth} max={todayInSydney()} className={input} />
       </label>
       <label className="block">
-        <span className={label}>Studio (optional)</span>
+        <span className={label}>Studio (leave blank if they dance independently)</span>
         <input name="studio_name" defaultValue={values?.studio_name} className={input} />
       </label>
     </>
@@ -38,7 +38,7 @@ async function Dancers() {
         <p className={muted}><Link href="/dashboard" className={link}>Dashboard</Link> /</p>
         <h1 className={h1}>My dancers</h1>
         <p className={`${muted} mt-1 max-w-2xl`}>
-          Add each dancer once, then choose them when entering a competition. Parents usually add their own children; studios can add their whole team.
+          Add each dancer once, then choose them when entering a competition. Parents add their own children here. Studios don&apos;t need to: they can make a studio entry with just the studio name.
           We only keep the name, date of birth (to check age groups) and studio. You are the contact for every dancer you add.
         </p>
       </div>

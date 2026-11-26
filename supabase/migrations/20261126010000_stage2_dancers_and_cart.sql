@@ -22,6 +22,11 @@ create index dancers_owner_idx on public.dancers (owner_id);
 -- ---------------------------------------------------------------------------
 
 alter table public.events add column age_as_at date;
+
+-- Entries open and close on the event's dates ('auto'), unless an organiser
+-- or the platform admin opens or closes them by hand.
+alter table public.events add column entries_override text not null default 'auto'
+  check (entries_override in ('auto', 'open', 'closed'));
 comment on column public.events.age_as_at is 'Dancers'' ages are worked out on this date (often 1 January). Blank = the first day of the event.';
 
 alter table public.sections add column min_age integer check (min_age between 0 and 120);
@@ -47,6 +52,8 @@ create table public.entry_dancers (
 
 -- ---------------------------------------------------------------------------
 -- Carts: one open cart per person per event.
+-- An item is either named dancers (parents, studios listing dancers) or a
+-- studio entry that only gives the studio name (no children's details).
 -- ---------------------------------------------------------------------------
 
 create type public.order_status as enum ('open', 'paid', 'cancelled');
@@ -69,8 +76,9 @@ create table public.order_items (
   id uuid primary key default gen_random_uuid(),
   order_id uuid not null references public.orders (id) on delete cascade,
   section_id uuid not null references public.sections (id) on delete restrict,
-  routine_title text not null default '',
-  dancer_ids uuid[] not null check (cardinality(dancer_ids) > 0),
+  dancer_ids uuid[] not null default '{}',
+  studio_name text not null default '',
+  check (cardinality(dancer_ids) > 0 or length(trim(studio_name)) > 0),
   fee_cents integer not null check (fee_cents >= 0),
   entry_id uuid references public.entries (id) on delete set null,
   created_at timestamptz not null default now()
@@ -143,7 +151,8 @@ create policy "order items: owner or organiser reads" on public.order_items
 -- Helpers
 -- ---------------------------------------------------------------------------
 
--- Is the event taking entries today (Sydney time)?
+-- Is the event taking entries today (Sydney time)? An organiser's manual
+-- open/close wins over the dates.
 create function public.entries_are_open(ev uuid)
 returns boolean
 language sql
@@ -154,9 +163,15 @@ as $$
     select 1 from public.events e
     where e.id = ev
       and e.status = 'published'
-      and e.entries_open_on is not null
-      and e.entries_close_on is not null
-      and (now() at time zone 'Australia/Sydney')::date between e.entries_open_on and e.entries_close_on
+      and (
+        e.entries_override = 'open'
+        or (
+          e.entries_override = 'auto'
+          and e.entries_open_on is not null
+          and e.entries_close_on is not null
+          and (now() at time zone 'Australia/Sydney')::date between e.entries_open_on and e.entries_close_on
+        )
+      )
   );
 $$;
 
@@ -170,9 +185,10 @@ as $$
   select extract(year from age(on_date, dob))::integer;
 $$;
 
--- Add an entry to the caller's cart for an event. Checks entry dates,
--- dancer ownership, numbers of dancers and age limits.
-create function public.add_to_cart(sec uuid, p_dancer_ids uuid[], p_routine_title text)
+-- Add an entry to the caller's cart for an event. Checks entry dates, and for
+-- named dancers: ownership, numbers of dancers and age limits. A studio entry
+-- (studio name, no dancers) skips the dancer checks.
+create function public.add_to_cart(sec uuid, p_dancer_ids uuid[], p_studio_name text)
 returns uuid
 language plpgsql
 security definer set search_path = ''
@@ -186,6 +202,7 @@ declare
   v_age_date date;
   v_bad text;
   v_item uuid;
+  v_studio text := coalesce(trim(p_studio_name), '');
 begin
   if v_user is null then
     raise exception 'Please sign in first';
@@ -202,30 +219,36 @@ begin
   end if;
 
   v_count := coalesce(cardinality(p_dancer_ids), 0);
-  if v_count = 0 then
-    raise exception 'Please choose at least one dancer';
+  if v_count = 0 and v_studio = '' then
+    raise exception 'Please choose at least one dancer, or enter a studio name';
   end if;
-  if (select count(*) from public.dancers where id = any (p_dancer_ids) and owner_id = v_user) <> v_count then
-    raise exception 'You can only enter your own dancers';
-  end if;
-  if v_count < v_section.min_dancers then
-    raise exception 'This section needs at least % dancers', v_section.min_dancers;
-  end if;
-  if v_section.max_dancers is not null and v_count > v_section.max_dancers then
-    raise exception 'This section allows at most % dancers', v_section.max_dancers;
+  if v_count > 0 and v_studio <> '' then
+    raise exception 'Choose dancers or a studio name, not both';
   end if;
 
-  v_age_date := coalesce(v_event.age_as_at, v_event.starts_on);
-  select string_agg(d.full_name || ' (' || public.age_on(d.date_of_birth, v_age_date) || ')', ', ')
-  into v_bad
-  from public.dancers d
-  where d.id = any (p_dancer_ids)
-    and (
-      (v_section.min_age is not null and public.age_on(d.date_of_birth, v_age_date) < v_section.min_age)
-      or (v_section.max_age is not null and public.age_on(d.date_of_birth, v_age_date) > v_section.max_age)
-    );
-  if v_bad is not null then
-    raise exception 'Outside the age group for this section: %', v_bad;
+  if v_count > 0 then
+    if (select count(*) from public.dancers where id = any (p_dancer_ids) and owner_id = v_user) <> v_count then
+      raise exception 'You can only enter your own dancers';
+    end if;
+    if v_count < v_section.min_dancers then
+      raise exception 'This section needs at least % dancers', v_section.min_dancers;
+    end if;
+    if v_section.max_dancers is not null and v_count > v_section.max_dancers then
+      raise exception 'This section allows at most % dancers', v_section.max_dancers;
+    end if;
+
+    v_age_date := coalesce(v_event.age_as_at, v_event.starts_on);
+    select string_agg(d.full_name || ' (' || public.age_on(d.date_of_birth, v_age_date) || ')', ', ')
+    into v_bad
+    from public.dancers d
+    where d.id = any (p_dancer_ids)
+      and (
+        (v_section.min_age is not null and public.age_on(d.date_of_birth, v_age_date) < v_section.min_age)
+        or (v_section.max_age is not null and public.age_on(d.date_of_birth, v_age_date) > v_section.max_age)
+      );
+    if v_bad is not null then
+      raise exception 'Outside the age group for this section: %', v_bad;
+    end if;
   end if;
 
   select id into v_order from public.orders
@@ -234,8 +257,8 @@ begin
     insert into public.orders (user_id, event_id) values (v_user, v_event.id) returning id into v_order;
   end if;
 
-  insert into public.order_items (order_id, section_id, routine_title, dancer_ids, fee_cents)
-  values (v_order, sec, coalesce(trim(p_routine_title), ''), p_dancer_ids, v_section.entry_fee_cents)
+  insert into public.order_items (order_id, section_id, dancer_ids, studio_name, fee_cents)
+  values (v_order, sec, coalesce(p_dancer_ids, '{}'), v_studio, v_section.entry_fee_cents)
   returning id into v_item;
 
   update public.orders set total_cents = (select coalesce(sum(fee_cents), 0) from public.order_items where order_id = v_order)

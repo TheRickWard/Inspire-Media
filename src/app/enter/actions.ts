@@ -14,7 +14,11 @@ function friendly(message: string) {
 const cartSchema = z.object({
   section_id: z.uuid("Please choose a section."),
   dancer_ids: z.array(z.uuid()).min(1, "Please tick at least one dancer."),
-  routine_title: z.string().trim().max(200),
+});
+
+const studioSchema = z.object({
+  section_id: z.uuid("Please choose a section."),
+  studio_name: z.string().trim().min(1, "Please enter the studio name.").max(200),
 });
 
 export async function addToCart(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -22,7 +26,6 @@ export async function addToCart(_prev: FormState, formData: FormData): Promise<F
   const parsed = cartSchema.safeParse({
     section_id: String(formData.get("section_id") ?? ""),
     dancer_ids: formData.getAll("dancer_ids").map(String),
-    routine_title: String(formData.get("routine_title") ?? ""),
   });
   if (!parsed.success) return fail(parsed.error.issues[0].message);
 
@@ -30,7 +33,26 @@ export async function addToCart(_prev: FormState, formData: FormData): Promise<F
   const { error } = await supabase.rpc("add_to_cart", {
     sec: parsed.data.section_id,
     p_dancer_ids: parsed.data.dancer_ids,
-    p_routine_title: parsed.data.routine_title,
+    p_studio_name: "",
+  });
+  if (error) return fail(friendly(error.message));
+  refresh();
+  return done("Added to your cart.");
+}
+
+export async function addStudioEntryToCart(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireUser();
+  const parsed = studioSchema.safeParse({
+    section_id: String(formData.get("section_id") ?? ""),
+    studio_name: String(formData.get("studio_name") ?? ""),
+  });
+  if (!parsed.success) return fail(parsed.error.issues[0].message);
+
+  const supabase = await createSupabase();
+  const { error } = await supabase.rpc("add_to_cart", {
+    sec: parsed.data.section_id,
+    p_dancer_ids: [],
+    p_studio_name: parsed.data.studio_name,
   });
   if (error) return fail(friendly(error.message));
   refresh();
