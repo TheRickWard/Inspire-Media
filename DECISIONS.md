@@ -60,7 +60,7 @@ Each entry records what was decided, why, and the date.
 
 ## 2026-11-26 – Studio entries need only the studio name
 **Decision:** There are two ways to enter. Parents (or studios who want ages checked) pick their saved dancers. A dance studio can instead make a "studio entry" with just the studio name. No dancer names or birth dates are stored for studio entries, so the portal doesn't check ages or dancer numbers for them. Competitors don't give a routine title when entering.
-**Why:** Rick asked for this on 2026-11-26. It stores the least information about children. Organisers can still check ages at the venue. (Awaiting Rick's final confirmation on the decision card.)
+**Why:** Rick asked for this on 2026-11-26. It stores the least information about children. Organisers can still check ages at the venue. Confirmed by Rick on 2026-11-26.
 
 ## 2026-11-26 – Organisers can open or close entries by hand
 **Decision:** Entries open and close automatically on the event's dates. An organiser (or the Inspire admin) can override this on the event page: "open now", "closed now", or back to automatic.
