@@ -96,7 +96,7 @@ insert into public.organisation_members (organisation_id, user_id, role) values
 out.append(f"""insert into public.events (id, organisation_id, name, status, venue_name, venue_address, starts_on, ends_on,
   entries_open_on, entries_close_on, music_due_on, contact_email, contact_phone, description) values
   ('{EV_MAIN}', '{ORG_INSPIRE}', 'Inspire Sydney Dance Eisteddfod 2027', 'published', 'Westside Community Theatre',
-   '12 Example Street, Parramatta NSW', '2027-03-13', '2027-03-14', '2026-12-01', '2027-02-01', '2027-02-20',
+   '12 Example Street, Parramatta NSW', '2027-03-13', '2027-03-14', '2026-11-01', '2027-02-01', '2027-02-20',
    'events@inspire.test', '02 9000 0000',
    'Solo, duo/trio and troupe sections for all ages. Doors open 7:30am. Please have music uploaded by the due date.'),
   ('{EV_EMPTY}', '{ORG_INSPIRE}', 'Inspire Winter Classic 2027', 'draft', 'Northside Hall',
@@ -113,6 +113,15 @@ for pos, (code, sname, session, genre, age, count, kind) in enumerate(seed_secti
     out.append(f"""insert into public.sections (event_id, session_id, code, name, genre, age_group, entry_fee_cents, position)
 select '{EV_MAIN}', id, {q(code)}, {q(sname)}, {q(genre)}, {q(age)}, {fee}, {pos} from public.event_sessions
 where event_id = '{EV_MAIN}' and name = {q(session)};""")
+out.append("")
+rules = {"12": (None, 10, 1, 1), "15": (None, 12, 1, 1), "21": (None, None, 2, 3), "30": (None, 13, 4, None)}
+for code, (mn, mx, mind, maxd) in rules.items():
+    sql = lambda v: "null" if v is None else str(v)
+    out.append(f"update public.sections set min_age = {sql(mn)}, max_age = {sql(mx)}, min_dancers = {mind}, max_dancers = {sql(maxd)} where event_id = '{EV_MAIN}' and code = '{code}';")
+out.append(f"update public.events set age_as_at = '2027-01-01' where id = '{EV_MAIN}';")
+out.append(f"""insert into public.dancers (owner_id, full_name, date_of_birth, studio_name) values
+  ('{PARENT}', 'Daisy Example', '2017-05-04', 'Starlight Dance Academy'),
+  ('{PARENT}', 'Max Example', '2014-09-21', 'Starlight Dance Academy');""")
 out.append("")
 for pos, r in enumerate(seed_rows, 1):
     out.append(f"""insert into public.entries (event_id, section_id, item_number, performer_name, studio_name, routine_title, position)

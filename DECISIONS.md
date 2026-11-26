@@ -45,3 +45,15 @@ Each entry records what was decided, why, and the date.
 
 ## 2026-11-25 – Scratch rather than delete
 **Decision:** Withdrawn items are "scratched" and stay in the records. Delete is only for mistakes and asks for confirmation.
+
+## 2026-11-26 – Who enters, and what we keep about dancers
+**Decision:** Any account can add dancers and enter them, so parents can enter their own children and studios can enter their whole team. For each dancer we keep only the name, date of birth (to check age groups) and studio. The account holder is the contact.
+**Why:** Matches how eisteddfods usually run, and keeps as little information about children as possible. (Card sent to Rick to confirm.)
+
+## 2026-11-26 – Entries are created when paid
+**Decision:** Entries sit in a cart until paid. Only paid cart items become program entries, without an item number until the organiser numbers the program. Nobody can mark a cart paid or change a fee directly; only the database's own checks can.
+**Why:** Keeps the program free of unpaid entries and stops fee tampering.
+
+## 2026-11-26 – Newer Supabase projects need explicit access grants
+**Decision:** Every database change file grants the website access to new tables and functions explicitly.
+**Why:** The live Supabase project doesn't grant access by default (found while going live).

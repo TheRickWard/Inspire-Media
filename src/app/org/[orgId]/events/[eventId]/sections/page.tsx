@@ -2,13 +2,13 @@ import { Suspense } from "react";
 import { loadManagedEvent } from "@/lib/access";
 import { ActionForm } from "@/components/ActionForm";
 import { EventNav } from "@/components/EventNav";
-import { formatDate, formatMoney } from "@/lib/format";
+import { describeAges, formatDate, formatMoney } from "@/lib/format";
 import { buttonSmall, card, h2, input, label, muted } from "@/components/ui";
 import { createSection, createSession, deleteSection, deleteSession, updateSection } from "@/app/org/program-actions";
 
 type SessionOption = { id: string; name: string };
 
-function SectionInputs({ sessions, values }: { sessions: SessionOption[]; values?: { code: string; name: string; session_id: string | null; genre: string; age_group: string; entry_fee_cents: number } }) {
+function SectionInputs({ sessions, values }: { sessions: SessionOption[]; values?: { code: string; name: string; session_id: string | null; genre: string; age_group: string; entry_fee_cents: number; min_age: number | null; max_age: number | null; min_dancers: number; max_dancers: number | null } }) {
   return (
     <>
       <div className="sm:col-span-1">
@@ -38,6 +38,22 @@ function SectionInputs({ sessions, values }: { sessions: SessionOption[]; values
         <label className={label}>Entry fee ($)</label>
         <input name="entry_fee" inputMode="decimal" defaultValue={values ? (values.entry_fee_cents / 100).toFixed(2) : ""} placeholder="0.00" className={input} />
       </div>
+      <div className="sm:col-span-3">
+        <span className={label}>Ages allowed (blank = any)</span>
+        <div className="flex items-center gap-2">
+          <input name="min_age" inputMode="numeric" aria-label="Minimum age" defaultValue={values?.min_age ?? ""} placeholder="from" className={input} />
+          <span className="text-slate-500">to</span>
+          <input name="max_age" inputMode="numeric" aria-label="Maximum age" defaultValue={values?.max_age ?? ""} placeholder="to" className={input} />
+        </div>
+      </div>
+      <div className="sm:col-span-3">
+        <span className={label}>Dancers per entry (blank = any)</span>
+        <div className="flex items-center gap-2">
+          <input name="min_dancers" inputMode="numeric" aria-label="Minimum dancers" defaultValue={values?.min_dancers ?? 1} placeholder="1" className={input} />
+          <span className="text-slate-500">to</span>
+          <input name="max_dancers" inputMode="numeric" aria-label="Maximum dancers" defaultValue={values?.max_dancers ?? ""} placeholder="e.g. 1 for solos" className={input} />
+        </div>
+      </div>
     </>
   );
 }
@@ -47,7 +63,7 @@ async function Sections({ params }: { params: Promise<{ orgId: string; eventId: 
   const { supabase, org, event } = await loadManagedEvent(orgId, eventId);
   const [{ data: sessions }, { data: sections }] = await Promise.all([
     supabase.from("event_sessions").select("id, name, session_date, starts_at").eq("event_id", eventId).order("position"),
-    supabase.from("sections").select("id, code, name, session_id, genre, age_group, entry_fee_cents, entries(count)").eq("event_id", eventId).order("position"),
+    supabase.from("sections").select("id, code, name, session_id, genre, age_group, entry_fee_cents, min_age, max_age, min_dancers, max_dancers, entries(count)").eq("event_id", eventId).order("position"),
   ]);
   const sessionOptions = (sessions ?? []).map((s) => ({ id: s.id, name: s.name }));
 
@@ -90,7 +106,7 @@ async function Sections({ params }: { params: Promise<{ orgId: string; eventId: 
             <summary className="flex cursor-pointer flex-wrap items-baseline justify-between gap-2 px-5 py-3">
               <span className="font-medium">Section {s.code} – {s.name}</span>
               <span className={muted}>
-                {sessionOptions.find((x) => x.id === s.session_id)?.name ?? "No session"} · {s.entries?.[0]?.count ?? 0} items · {formatMoney(s.entry_fee_cents)}
+                {sessionOptions.find((x) => x.id === s.session_id)?.name ?? "No session"} · {s.entries?.[0]?.count ?? 0} items · {formatMoney(s.entry_fee_cents)}{describeAges(s.min_age, s.max_age) && ` · ${describeAges(s.min_age, s.max_age)}`}
               </span>
             </summary>
             <div className="space-y-3 border-t border-slate-100 px-5 py-4">
