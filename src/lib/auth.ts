@@ -20,8 +20,19 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     .from("profiles")
     .select("id, email, full_name, is_platform_admin")
     .eq("id", userId)
-    .single();
-  if (!profile) return null;
+    .maybeSingle();
+
+  // Signed in, but no profile row (e.g. the account was made before the
+  // database was fully set up). Still treat them as signed in, so they
+  // aren't bounced back to the sign-in page.
+  if (!profile) {
+    return {
+      id: userId,
+      email: typeof data.claims.email === "string" ? data.claims.email : "",
+      fullName: "",
+      isPlatformAdmin: false,
+    };
+  }
 
   return {
     id: profile.id,
