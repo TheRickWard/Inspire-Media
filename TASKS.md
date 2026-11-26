@@ -2,10 +2,8 @@
 
 ## To Do
 
-### Going live (needs Rick)
-- [ ] Rick creates free Supabase and Vercel accounts so the portal gets a live web address
-- [ ] Make Rick's real account the Inspire admin on the live site
-- [ ] Set up sign-up confirmation emails and password reset on the live site
+### Going live
+- [ ] Set up a "forgot password" page and a proper sign-up confirmation page
 
 ### Portal stage 2 – Entries, cart, payments and receipts
 - [ ] Competitors browse and enter events (by name, date, location, age, genre)
@@ -38,5 +36,6 @@
 ## In Progress
 
 ## Done
+- [x] 2026-11-26 – Portal live at https://inspire-media-tau.vercel.app; Rick signed in as Inspire admin. Fixed: plain message when settings are missing, accept either Supabase address, no sign-in loop without a profile, explicit database access grants for newer Supabase projects
 - [x] 2026-11-25 – Read the brief and requirements; agreed build order, many organisers, hosting, Square, and repository
 - [x] 2026-11-25 – Stage 1: website skeleton with the Inspire logo theme, logins, Inspire admin page, organisers and staff, events, sessions and sections, program CSV import, online program editing (edit, scratch, reorder, late entries), public event page, program CSV download, sample data, and automatic security tests
