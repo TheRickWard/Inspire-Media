@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { requireUser } from "@/lib/auth";
 import { createSupabase } from "@/lib/supabase/server";
+import { createAdminSupabase } from "@/lib/supabase/admin";
 import { formatDateRange, formatDateTime, formatMoney } from "@/lib/format";
 import { PrintButton } from "@/components/PrintButton";
 import { card, link, muted } from "@/components/ui";
@@ -28,6 +29,11 @@ async function Receipt({ params, searchParams }: { params: Promise<{ orderId: st
   const { data: dancers } = allDancerIds.length
     ? await supabase.from("dancers").select("id, full_name").in("id", allDancerIds)
     : { data: [] };
+  // Organisers viewing a competitor's receipt can't read their profile directly.
+  let payer: { full_name: string; email: string } | null = order.profiles;
+  if (!payer && process.env.SUPABASE_SECRET_KEY?.trim()) {
+    payer = (await createAdminSupabase().from("profiles").select("full_name, email").eq("id", order.user_id).maybeSingle()).data;
+  }
   const dancerName = new Map((dancers ?? []).map((d) => [d.id, d.full_name]));
   const items = [...order.order_items].sort((a, b) => a.created_at.localeCompare(b.created_at));
   const abn = process.env.RECEIPT_ABN?.trim();
@@ -66,8 +72,8 @@ async function Receipt({ params, searchParams }: { params: Promise<{ orderId: st
         <div className="grid gap-4 text-sm sm:grid-cols-2">
           <div>
             <p className={muted}>Paid by</p>
-            <p className="font-medium">{order.profiles?.full_name || order.profiles?.email}</p>
-            {order.profiles?.full_name && <p className="text-slate-600">{order.profiles.email}</p>}
+            <p className="font-medium">{payer?.full_name || payer?.email}</p>
+            {payer?.full_name && <p className="text-slate-600">{payer.email}</p>}
           </div>
           <div>
             <p className={muted}>Competition</p>

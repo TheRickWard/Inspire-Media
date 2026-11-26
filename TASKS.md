@@ -6,10 +6,8 @@
 - [ ] Set up a "forgot password" page and a proper sign-up confirmation page
 
 ### Portal stage 2 – Entries, cart, payments and receipts
-- [ ] Rick: add the payment keys in Vercel and try a test payment with each of Square and PayPal
 - [ ] Payment "webhooks" as a backup, so a payment is recorded even if the competitor closes the page before returning
 - [ ] Refunds (done in Square/PayPal for now; show them in the portal later)
-- [ ] Organiser: see paid and unpaid carts for an event
 - [ ] Organiser: number all un-numbered entries in one click
 - [ ] Organiser chooses what competitor accounts are allowed to do
 - [ ] Filter competitions by date, location, age and genre (once there are several)
@@ -37,6 +35,8 @@
 ## In Progress
 
 ## Done
+- [x] 2026-11-26 – Organiser "Payments" tab per event: money received (by Square/PayPal), paid carts with receipts and contact, unpaid carts
+- [x] 2026-11-26 – Rick made test payments with Square and PayPal on the live site (both worked)
 - [x] 2026-11-26 – Payments (test mode): Square and PayPal checkout, payment checked with Square/PayPal before marking paid, paid items go into the program, receipt page with logo and My receipts, 9 payment tests and 1 more security test
 - [x] 2026-11-26 – Rick's changes: studio entries with just a studio name, no routine title when entering, organisers can open or close entries by hand
 - [x] 2026-11-26 – Stage 2 part 1: dancers (name, date of birth, studio), entering published events, cart with age and dancer-count checks, entries open/close on the event dates, section age and dancer limits, "ages as at" date, 3 more security tests
