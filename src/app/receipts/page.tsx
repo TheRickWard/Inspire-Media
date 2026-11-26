@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { requireUser } from "@/lib/auth";
 import { createSupabase } from "@/lib/supabase/server";
 import { formatDateTime, formatMoney } from "@/lib/format";
-import { card, h1, link, muted } from "@/components/ui";
+import { h1, link, muted } from "@/components/ui";
 
 async function Receipts() {
   const user = await requireUser();
@@ -24,7 +24,7 @@ async function Receipts() {
       {(orders ?? []).length === 0 ? (
         <p className={muted}>No payments yet. Once you pay for entries, your receipts appear here.</p>
       ) : (
-        <ul className={`${card} divide-y divide-slate-100 p-0`}>
+        <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white shadow-sm">
           {(orders ?? []).map((o) => (
             <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm">
               <div>
