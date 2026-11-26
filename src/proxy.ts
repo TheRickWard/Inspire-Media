@@ -1,20 +1,19 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { supabaseSettings } from "@/lib/supabase/config";
 
 // Keeps the login session fresh on every page request.
 export async function proxy(request: NextRequest) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
   // Without the two Supabase settings nothing can work, so say so plainly
   // instead of showing "Internal Server Error".
-  if (!url || !key) {
-    const missing = [!url && "NEXT_PUBLIC_SUPABASE_URL", !key && "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"].filter(Boolean).join(" and ");
+  const settings = supabaseSettings();
+  if (!settings) {
     return new NextResponse(
-      `Setup needed: the website can't find ${missing}. Add them in Vercel under Settings > Environment Variables, then redeploy.`,
+      "Setup needed: the website can't read NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY. Check them in Vercel under Settings > Environment Variables, then redeploy.",
       { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } },
     );
   }
+  const { url, key } = settings;
 
   let response = NextResponse.next({ request });
 

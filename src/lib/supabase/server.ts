@@ -4,9 +4,9 @@ import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { connection } from "next/server";
 import type { Database } from "@/lib/database.types";
+import { supabaseSettings } from "@/lib/supabase/config";
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
+const { url, key } = supabaseSettings() ?? { url: "", key: "" };
 
 /** Database client acting as the signed-in person (security rules apply). */
 export async function createSupabase() {
