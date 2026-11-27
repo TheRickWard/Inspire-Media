@@ -8,8 +8,7 @@ import { ageOn, describeAges, formatDate, formatDateRange, formatMoney, todayInS
 import { button, buttonSmall, card, h1, h2, input, label, link, muted } from "@/components/ui";
 import { entriesStatus } from "@/lib/entries";
 import { addStudioEntryToCart, addToCart, removeFromCart } from "../actions";
-import { checkPayment, startCheckout } from "../checkout-actions";
-import { paymentsReady } from "@/lib/payments/config";
+import { checkPayment } from "../checkout-actions";
 
 function dancerRule(min: number, max: number | null) {
   if (max === 1) return "Solo";
@@ -45,7 +44,14 @@ async function EnterEvent({ params, searchParams }: { params: Promise<{ eventId:
   const sectionById = new Map((sections ?? []).map((s) => [s.id, s]));
   const dancerById = new Map((dancers ?? []).map((d) => [d.id, d]));
   const items = order?.order_items ?? [];
-  const pay = paymentsReady();
+  // Carts for other competitions: everything is paid together at checkout.
+  const { data: allCarts } = await supabase
+    .from("orders")
+    .select("id, total_cents, events(name), order_items(id)")
+    .eq("user_id", user.id)
+    .eq("status", "open");
+  const otherCarts = (allCarts ?? []).filter((o) => o.id !== order?.id && o.order_items.length > 0);
+  const cartTotal = (order?.total_cents ?? 0) + otherCarts.reduce((sum, o) => sum + o.total_cents, 0);
   const lastStudio = [...items].reverse().find((i) => i.studio_name)?.studio_name ?? "";
 
   const sectionPicker = (
@@ -172,18 +178,15 @@ async function EnterEvent({ params, searchParams }: { params: Promise<{ eventId:
                 <span>Total</span>
                 <span>{formatMoney(order?.total_cents ?? 0)}</span>
               </div>
-              {open && order && (pay.square || pay.paypal) ? (
-                <div className="space-y-2">
-                  {pay.square && (
-                    <ActionForm action={startCheckout.bind(null, order.id, "square")} submitLabel="Pay by card with Square" pendingLabel="Opening Square…" className="" buttonClassName={`${button} w-full`} />
-                  )}
-                  {pay.paypal && (
-                    <ActionForm action={startCheckout.bind(null, order.id, "paypal")} submitLabel="Pay with PayPal" pendingLabel="Opening PayPal…" className="" buttonClassName={`${button} w-full`} />
-                  )}
-                  {pay.testMode && <p className="text-xs font-medium text-amber-700">Test mode: no real money is taken.</p>}
-                </div>
+              {otherCarts.length > 0 && (
+                <p className="text-sm text-slate-600">
+                  Also in your cart: {otherCarts.map((o) => o.events?.name ?? "another competition").join(", ")}. Whole cart: <span className="font-semibold">{formatMoney(cartTotal)}</span>
+                </p>
+              )}
+              {open ? (
+                <Link href="/cart" className={`${button} w-full`}>Go to checkout</Link>
               ) : (
-                <p className={muted}>{open ? "Online payment: coming soon. Your cart is saved." : "Entries are closed, so this cart can't be paid."}</p>
+                <p className={muted}>Entries are closed, so this cart can&apos;t be paid.</p>
               )}
               {order?.checkout_provider && (
                 <ActionForm action={checkPayment.bind(null, order.id)} submitLabel="Already paid? Check my payment" pendingLabel="Checking…" className="" buttonClassName={buttonSmall} />

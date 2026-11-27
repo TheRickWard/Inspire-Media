@@ -10,6 +10,9 @@ export async function confirmByProviderReference(provider: Provider, reference: 
     .select("id, status")
     .eq("checkout_provider", provider)
     .eq("checkout_reference", reference)
+    // One payment can cover several carts; confirming one confirms them all.
+    .order("status")
+    .limit(1)
     .maybeSingle();
   if (!order) {
     // Not one of ours (or the cart changed after this payment was started).
