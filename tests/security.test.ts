@@ -386,3 +386,54 @@ test("music: competitors see and upload only their own; organisers manage their 
   assert.equal(bucket?.file_size_limit, 20971520);
   await server.from("entry_music").delete().eq("entry_id", mine!.id);
 });
+
+test("one cart, several competitions: one payment pays every cart, each with its own receipt", async () => {
+  const parent = await signIn("parent@example.test");
+  const staff = await signIn("staff@inspire.test");
+  const server = createClient(URL, SECRET, { auth: { persistSession: false } });
+
+  // A second competition taking entries.
+  await staff.from("events").update({ status: "published", entries_override: "open" }).eq("id", DRAFT_EVENT);
+  const { data: winterSection } = await staff.from("sections").insert({ event_id: DRAFT_EVENT, code: "W1", name: "Troupe Open", entry_fee_cents: 4000 }).select("id").single();
+  const { data: mainSection } = await parent.from("sections").select("id").eq("event_id", MAIN_EVENT).eq("code", "30").single();
+
+  await parent.rpc("add_to_cart", { sec: mainSection!.id, p_dancer_ids: [], p_studio_name: "Group Test Studio" });
+  await parent.rpc("add_to_cart", { sec: winterSection!.id, p_dancer_ids: [], p_studio_name: "Group Test Studio" });
+  const { data: allOpen } = await parent.from("orders").select("id, total_cents, order_items(id)").eq("status", "open").in("event_id", [MAIN_EVENT, DRAFT_EVENT]).order("created_at");
+  const carts = allOpen!.filter((c) => c.order_items.length > 0);
+  assert.equal(carts.length, 2, JSON.stringify(allOpen));
+  const ids = carts.map((c) => c.id);
+  const total = carts.reduce((s, c) => s + c.total_cents, 0);
+
+  // Only the server can record or complete a group checkout, and only for the right total.
+  assert.ok((await parent.rpc("record_checkout_group", { p_orders: ids, p_provider: "square", p_reference: "G-1", p_amount_cents: total })).error);
+  assert.match((await server.rpc("record_checkout_group", { p_orders: ids, p_provider: "square", p_reference: "G-1", p_amount_cents: total - 1 })).error?.message ?? "", /cart has changed/);
+  assert.equal((await server.rpc("record_checkout_group", { p_orders: ids, p_provider: "square", p_reference: "G-1", p_amount_cents: total })).error, null);
+
+  // Changing one competition's cart cancels the checkout for both.
+  const { data: extra } = await parent.rpc("add_to_cart", { sec: winterSection!.id, p_dancer_ids: [], p_studio_name: "Another Studio" });
+  await parent.rpc("remove_from_cart", { item: extra as string });
+  const { data: cleared } = await parent.from("orders").select("checkout_reference").in("id", ids);
+  assert.deepEqual(cleared!.map((c) => c.checkout_reference), [null, null]);
+
+  await server.rpc("record_checkout_group", { p_orders: ids, p_provider: "square", p_reference: "G-2", p_amount_cents: total });
+  assert.match((await server.rpc("complete_checkout_group", { p_group: ids[0], p_provider: "square", p_reference: "G-2", p_paid_cents: total - 100, p_receipt_url: "" })).error?.message ?? "", /does not match/);
+  const paid = await server.rpc("complete_checkout_group", { p_group: ids[0], p_provider: "square", p_reference: "G-2", p_paid_cents: total, p_receipt_url: "" });
+  assert.equal(paid.error, null);
+  const receipts = paid.data as string[];
+  assert.equal(receipts.length, 2);
+  assert.notEqual(receipts[0], receipts[1]);
+  const again = await server.rpc("complete_checkout_group", { p_group: ids[0], p_provider: "square", p_reference: "G-2", p_paid_cents: total, p_receipt_url: "" });
+  assert.deepEqual(again.data, receipts, "returning twice gives the same receipts");
+
+  const { data: orders } = await parent.from("orders").select("status, paid_amount_cents, total_cents").in("id", ids);
+  assert.ok(orders!.every((o) => o.status === "paid" && o.paid_amount_cents === o.total_cents));
+  const { count } = await staff.from("entries").select("id", { count: "exact", head: true }).eq("event_id", DRAFT_EVENT).eq("performer_name", "Group Test Studio");
+  assert.equal(count, 1, "the entry is in the second competition's program");
+
+  // Each organiser only sees their own competition's cart.
+  const harbour = await signIn("organiser@harbourdance.test");
+  assert.deepEqual((await harbour.from("orders").select("id").in("id", ids)).data, []);
+
+  await staff.from("events").update({ status: "draft", entries_override: "auto" }).eq("id", DRAFT_EVENT);
+});

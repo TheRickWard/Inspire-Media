@@ -91,3 +91,8 @@ Each entry records what was decided, why, and the date.
 ## 2026-11-27 – Password reset, and Privacy and terms
 **Decision:** "Forgot your password?" on the sign-in page emails a reset link (it gives the same answer whether or not the email has an account, so it doesn't reveal who's signed up). The link must be opened in the same browser it was requested from. A draft Privacy and terms page is linked in the footer and on sign-up; it is written for Australian privacy law but is a draft until Rick has it checked.
 **Why:** Rick asked for these in the gap check (27 Nov). The site holds children's names and dates of birth and takes payments.
+
+## 2026-11-27 – One cart for several competitions
+**Decision:** Competitors have one Cart page (link at the top of every page) holding entries for all their competitions, paid in a single Square or PayPal payment. Behind the scenes each competition keeps its own cart, so each organiser only sees their own entries and each competition gets its own receipt number (the receipt shows which other receipts the same payment covered). Changing any part of the cart cancels a payment that was started, so the amount always matches. If one competition has closed, its items must be removed before paying.
+**Why:** Rick's requirements ask for a shopping cart for multiple events (confirmed 27 Nov).
+**Note:** All payments still go to Inspire's Square/PayPal accounts (see "How online payments work").

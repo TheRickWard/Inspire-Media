@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { getCurrentUser } from "@/lib/auth";
+import { createSupabase } from "@/lib/supabase/server";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -22,8 +23,20 @@ async function AccountLinks() {
       </div>
     );
   }
+  // Number of entries waiting in the cart (all competitions).
+  const { data: carts } = await (await createSupabase())
+    .from("orders")
+    .select("order_items(count)")
+    .eq("user_id", user.id)
+    .eq("status", "open");
+  const inCart = (carts ?? []).reduce((sum, o) => sum + (o.order_items[0]?.count ?? 0), 0);
   return (
     <div className="flex items-center gap-4 text-sm font-medium">
+      {inCart > 0 && (
+        <Link href="/cart" className="rounded-full bg-brand-magenta/10 px-2.5 py-1 text-brand-ink hover:underline">
+          Cart ({inCart})
+        </Link>
+      )}
       {user.isPlatformAdmin && <Link href="/admin" className="hover:underline">Admin</Link>}
       <Link href="/dashboard" className="hover:underline">My dashboard</Link>
       <span className="hidden text-slate-500 sm:inline">{user.fullName || user.email}</span>
