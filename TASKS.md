@@ -3,7 +3,8 @@
 ## To Do
 
 ### Going live
-- [ ] Rick: run migration 20261127020000_one_cart.sql in the live Supabase SQL Editor
+- [ ] Rick: confirm 20261126030000_number_entries.sql was run live (the Program page's numbering buttons give an error if not)
+- [ ] Rick: confirm a password reset link opens the "Choose a new password" page (needs the URL Configuration below)
 - [ ] Rick: in Supabase > Authentication > URL Configuration, set Site URL to the live address and add https://inspire-media-tau.vercel.app/** to Redirect URLs (needed for reset links)
 - [ ] Have the Privacy and terms page checked; add CONTACT_EMAIL in Vercel
 - [ ] Set up a custom email sender in Supabase (the built-in one only sends a few emails an hour)
@@ -15,7 +16,6 @@
 - [ ] Filter competitions by date, location, age and genre (once there are several)
 
 ### Portal stage 3 – Music
-- [ ] Rick: run migration 20261127010000_stage3_music.sql in the live Supabase SQL Editor
 - [ ] Upgrade Supabase storage before a real event (free plan holds about 1 GB)
 - [ ] Email reminders to competitors who haven't uploaded music
 - [ ] Check a track's length and warn if it's over the section's time limit
@@ -38,6 +38,9 @@
 ## In Progress
 
 ## Done
+
+- [x] 2026-11-28 – Fixed: the home page showed "No competitions are published yet" to signed-out visitors on the live site (it asked for organisation names, which visitors can't read). Added `npm run db:live-grants` so local tests use live-style permissions
+- [x] 2026-11-28 – Checkout opens Square/PayPal in a new tab; the cart tab shows the receipt once paid
 
 - [x] 2026-11-27 – One cart for several competitions: a Cart page pays for every competition in one Square/PayPal payment; each competition still gets its own receipt
 
