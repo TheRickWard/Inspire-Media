@@ -1,9 +1,10 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { createPublicSupabase } from "@/lib/supabase/server";
 import { formatDate, formatDateRange, todayInSydney } from "@/lib/format";
 import { entriesStatus } from "@/lib/entries";
-import { card, h1, h2, muted } from "@/components/ui";
+import { button, card, h1, h2, muted } from "@/components/ui";
 
 async function PublicEvent({ params }: { params: Promise<{ eventId: string }> }) {
   const { eventId } = await params;
@@ -21,6 +22,7 @@ async function PublicEvent({ params }: { params: Promise<{ eventId: string }> })
     supabase.from("sections").select("id, code, name, session_id, entries(count)").eq("event_id", eventId).order("position"),
   ]);
 
+  const status = entriesStatus(event, todayInSydney());
   const groups = [
     ...(sessions ?? []).map((s) => ({ key: s.id, title: s.name, date: s.session_date, sections: (sections ?? []).filter((x) => x.session_id === s.id) })),
     { key: "none", title: "Other sections", date: null, sections: (sections ?? []).filter((x) => !x.session_id) },
@@ -33,7 +35,13 @@ async function PublicEvent({ params }: { params: Promise<{ eventId: string }> })
         <p className="text-slate-700">{formatDateRange(event.starts_on, event.ends_on)}</p>
         {event.venue_name && <p className="text-slate-700">{event.venue_name}{event.venue_address && `, ${event.venue_address}`}</p>}
         {event.description && <p className="max-w-2xl whitespace-pre-line text-slate-600">{event.description}</p>}
-        <p className="font-medium text-brand-purple">{entriesStatus(event, todayInSydney()).message}</p>
+        <p className="font-medium text-brand-purple">{status.message}</p>
+        {status.open && (
+          <div className="pt-2">
+            <Link href={`/enter/${event.id}`} className={button}>Enter this competition</Link>
+            <p className={`${muted} mt-1`}>You&apos;ll be asked to sign in or create a free account first.</p>
+          </div>
+        )}
       </section>
 
       <section className="grid gap-4 sm:grid-cols-3">
@@ -81,7 +89,7 @@ async function PublicEvent({ params }: { params: Promise<{ eventId: string }> })
         </section>
       )}
 
-      <p className={muted}>Online entry and secure critique downloads: coming soon.</p>
+      <p className={muted}>Critique downloads: coming soon.</p>
     </div>
   );
 }
