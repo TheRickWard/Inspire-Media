@@ -101,6 +101,38 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"entry_music": {
+                  Row: {
+                    "content_type": string,"entry_id": string,"event_id": string,"file_name": string,"size_bytes": number,"storage_path": string,"uploaded_at": string,"uploaded_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "content_type": string,"entry_id": string,"event_id": string,"file_name": string,"size_bytes": number,"storage_path": string,"uploaded_at"?: string,"uploaded_by"?: string | null
+                  }
+                  Update: {
+                    "content_type"?: string,"entry_id"?: string,"event_id"?: string,"file_name"?: string,"size_bytes"?: number,"storage_path"?: string,"uploaded_at"?: string,"uploaded_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "entry_music_entry_id_fkey"
+      columns: ["entry_id"]
+isOneToOne: true
+      referencedRelation: "entries"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "entry_music_event_id_fkey"
+      columns: ["event_id"]
+isOneToOne: false
+      referencedRelation: "events"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "entry_music_uploaded_by_fkey"
+      columns: ["uploaded_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"event_sessions": {
                   Row: {
                     "created_at": string,"event_id": string,"id": string,"name": string,"position": number,"session_date": string | null,"starts_at": string | null
@@ -330,11 +362,17 @@ isOneToOne: false
 "move_entry":
 { Args: { "direction": string,"entry": string }; Returns: undefined
                            },
+"music_upload_check":
+{ Args: { "entry": string }; Returns: string
+                           },
 "number_entries":
 { Args: { "ev": string,"p_mode": string }; Returns: number
                            },
 "owns_dancer":
 { Args: { "dancer": string }; Returns: boolean
+                           },
+"owns_entry":
+{ Args: { "entry": string }; Returns: boolean
                            },
 "record_checkout":
 { Args: { "p_amount_cents": number,"p_order": string,"p_provider": string,"p_reference": string }; Returns: undefined

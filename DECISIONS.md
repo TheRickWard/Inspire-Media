@@ -82,3 +82,8 @@ Each entry records what was decided, why, and the date.
 ## 2026-11-26 – Backup for payments (webhooks)
 **Decision:** Square and PayPal also notify the website directly when someone pays. The website checks the notification is genuinely from Square/PayPal (signature check), then asks them what was paid, the same as when the competitor comes back. Organisers can also press "Check with Square/PayPal" on an unpaid cart.
 **Why:** Rick asked for a backup so payments aren't missed if someone closes the page before returning.
+
+## 2026-11-27 – Music upload
+**Decision:** One music file per entry: MP3, M4A or WAV, up to 20 MB. Files are private (only the person who entered and the event's organisers can play them). Competitors can upload or replace music until the event's "Music upload due" date (or the last day of the event if none is set); organisers can always upload or replace. The file goes straight from the browser to storage using a one-off link the website hands out after checking who you are. The organiser's "Download all music" builds one zip in the browser, named in running order ("003 - Item 12A - Jane Jones.mp3"), for the whole event or one session. No new libraries (the zip is made by a small piece of our own code).
+**Why:** Rick chose music as stage 3. Uploading straight to storage avoids Vercel's small upload limit, and zipping in the browser avoids Vercel's download size limit.
+**Note:** Supabase's free plan stores about 1 GB in total. Rick will buy more storage before a real event.

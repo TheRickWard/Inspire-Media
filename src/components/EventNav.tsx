@@ -6,6 +6,7 @@ const tabs = [
   { key: "program", label: "Program", path: "/program" },
   { key: "sections", label: "Sections & sessions", path: "/sections" },
   { key: "payments", label: "Payments", path: "/payments" },
+  { key: "music", label: "Music", path: "/music" },
   { key: "import", label: "Import CSV", path: "/import" },
 ] as const;
 
