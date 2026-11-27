@@ -51,7 +51,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </header>
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
         <footer className="border-t border-slate-200 py-6 text-center text-xs text-slate-500">
-          Inspire Media competition portal
+          Inspire Media competition portal ·{" "}
+          <Link href="/privacy" className="underline-offset-2 hover:underline">Privacy and terms</Link>
         </footer>
       </body>
     </html>

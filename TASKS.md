@@ -3,7 +3,10 @@
 ## To Do
 
 ### Going live
-- [ ] Set up a "forgot password" page and a proper sign-up confirmation page
+- [ ] Rick: in Supabase > Authentication > URL Configuration, set Site URL to the live address and add https://inspire-media-tau.vercel.app/** to Redirect URLs (needed for reset links)
+- [ ] Have the Privacy and terms page checked; add CONTACT_EMAIL in Vercel
+- [ ] Set up a custom email sender in Supabase (the built-in one only sends a few emails an hour)
+- [ ] Switch Square and PayPal to live keys
 
 ### Portal stage 2 – Entries, cart, payments and receipts
 - [ ] Refunds (done in Square/PayPal for now; show them in the portal later)
@@ -34,6 +37,8 @@
 ## In Progress
 
 ## Done
+
+- [x] 2026-11-27 – Forgot password / choose new password pages; Enter button on public event pages; sign-in returns you to the page you were on; draft Privacy and terms page linked in the footer and sign-up
 
 - [x] Stage 3: competitors upload/replace/play music per paid entry (My entries and music); organiser Music tab shows uploaded/missing, plays and uploads tracks, and downloads the music as one zip in running order (whole event or per session)
 - [x] 2026-11-26 – Payment backup: Square and PayPal notifications (webhooks) record a payment even if the competitor closes the page; organisers can "Check with Square/PayPal" on unpaid carts

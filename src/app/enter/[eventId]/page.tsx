@@ -20,7 +20,7 @@ function dancerRule(min: number, max: number | null) {
 async function EnterEvent({ params, searchParams }: { params: Promise<{ eventId: string }>; searchParams: Promise<{ payment?: string }> }) {
   const { eventId } = await params;
   const { payment } = await searchParams;
-  const user = await requireUser();
+  const user = await requireUser(`/enter/${eventId}`);
   const supabase = await createSupabase();
 
   const { data: event } = await supabase
