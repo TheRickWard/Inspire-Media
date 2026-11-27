@@ -36,7 +36,7 @@ export default function Home() {
       <section className="space-y-2">
         <h1 className={h1}>Dance competitions and eisteddfods</h1>
         <p className="max-w-2xl text-slate-600">
-          Find a competition, view the program, and manage your entries. Online entry, payment and music upload are coming soon.
+          Find a competition, view the program, enter and pay online, and upload your music.
         </p>
       </section>
       <section className="space-y-4">

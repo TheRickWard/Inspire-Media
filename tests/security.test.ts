@@ -348,3 +348,41 @@ test("numbering: new entries get letters after the item before them; renumbering
   assert.equal(total, all!.length);
   assert.deepEqual(all!.map((e) => e.item_number), all!.map((_, i) => String(i + 1)));
 });
+
+test("music: competitors see and upload only their own; organisers manage their events; the bucket is private", async () => {
+  const parent = await signIn("parent@example.test");
+  const staff = await signIn("staff@inspire.test");
+  const harbour = await signIn("organiser@harbourdance.test");
+  const server = createClient(URL, SECRET, { auth: { persistSession: false } });
+
+  // The payments test made Daisy's paid entry.
+  const { data: mine } = await parent.from("entries").select("id, event_id").eq("entered_by", "44444444-4444-4444-8444-444444444444").eq("performer_name", "Daisy Example").single();
+  const { data: imported } = await staff.from("entries").select("id").eq("event_id", MAIN_EVENT).is("entered_by", null).limit(1).single();
+
+  assert.equal((await parent.rpc("music_upload_check", { entry: mine!.id })).data, null, "owner may upload");
+  assert.match((await parent.rpc("music_upload_check", { entry: imported!.id })).data as string, /only upload music for your own/);
+  assert.equal((await staff.rpc("music_upload_check", { entry: imported!.id })).data, null, "organiser may upload for any entry");
+  assert.match((await harbour.rpc("music_upload_check", { entry: mine!.id })).data as string, /only upload music for your own/);
+
+  // Past the due date, competitors are locked out but organisers aren't.
+  await staff.from("events").update({ music_due_on: "2020-01-01" }).eq("id", MAIN_EVENT);
+  assert.match((await parent.rpc("music_upload_check", { entry: mine!.id })).data as string, /closed/);
+  assert.equal((await staff.rpc("music_upload_check", { entry: mine!.id })).data, null);
+  await staff.from("events").update({ music_due_on: null }).eq("id", MAIN_EVENT);
+
+  // Only the server records music; people can read their own row, organisers their event's.
+  const row = { entry_id: mine!.id, event_id: MAIN_EVENT, storage_path: `${MAIN_EVENT}/${mine!.id}/x.mp3`, file_name: "song.mp3", size_bytes: 1000, content_type: "audio/mpeg" };
+  assert.ok((await parent.from("entry_music").insert(row)).error, "people can't write music rows directly");
+  assert.equal((await server.from("entry_music").insert(row)).error, null);
+  assert.equal((await parent.from("entry_music").select("entry_id")).data?.length, 1);
+  assert.equal((await staff.from("entry_music").select("entry_id").eq("event_id", MAIN_EVENT)).data?.length, 1);
+  assert.deepEqual((await harbour.from("entry_music").select("entry_id")).data, []);
+  assert.deepEqual((await anon().from("entry_music").select("entry_id")).data ?? [], []);
+
+  // Nobody can read or write the bucket directly; it's private.
+  assert.ok((await parent.storage.from("music").upload(`${MAIN_EVENT}/${mine!.id}/direct.mp3`, new Blob(["x"], { type: "audio/mpeg" }))).error);
+  const { data: bucket } = await server.storage.getBucket("music");
+  assert.equal(bucket?.public, false);
+  assert.equal(bucket?.file_size_limit, 20971520);
+  await server.from("entry_music").delete().eq("entry_id", mine!.id);
+});

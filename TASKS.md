@@ -6,15 +6,15 @@
 - [ ] Set up a "forgot password" page and a proper sign-up confirmation page
 
 ### Portal stage 2 – Entries, cart, payments and receipts
-- [ ] Rick: set up the Square and PayPal webhooks and add SQUARE_WEBHOOK_SIGNATURE_KEY and PAYPAL_WEBHOOK_ID in Vercel
 - [ ] Refunds (done in Square/PayPal for now; show them in the portal later)
 - [ ] Organiser chooses what competitor accounts are allowed to do
 - [ ] Filter competitions by date, location, age and genre (once there are several)
 
 ### Portal stage 3 – Music
-- [ ] Competitors upload music per entry and confirm it is correct
-- [ ] Organiser sees which entries have usable music
-- [ ] Download a day's music as an ordered playlist ("event pack")
+- [ ] Rick: run migration 20261127010000_stage3_music.sql in the live Supabase SQL Editor
+- [ ] Upgrade Supabase storage before a real event (free plan holds about 1 GB)
+- [ ] Email reminders to competitors who haven't uploaded music
+- [ ] Check a track's length and warn if it's over the section's time limit
 
 ### Portal stage 4 – Critiques and reports
 - [ ] Upload critiques and file them in each competitor's folder
@@ -34,6 +34,8 @@
 ## In Progress
 
 ## Done
+
+- [x] Stage 3: competitors upload/replace/play music per paid entry (My entries and music); organiser Music tab shows uploaded/missing, plays and uploads tracks, and downloads the music as one zip in running order (whole event or per session)
 - [x] 2026-11-26 – Payment backup: Square and PayPal notifications (webhooks) record a payment even if the competitor closes the page; organisers can "Check with Square/PayPal" on unpaid carts
 - [x] 2026-11-26 – Item numbers in one click on the Program page: number only new entries (12A, 12B…) or renumber the whole program 1, 2, 3…
 - [x] 2026-11-26 – Organiser "Payments" tab per event: money received (by Square/PayPal), paid carts with receipts and contact, unpaid carts
