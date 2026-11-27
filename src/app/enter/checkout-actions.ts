@@ -20,11 +20,18 @@ async function siteOrigin() {
   return `${proto}://${host}`;
 }
 
-/** Send the competitor to Square's or PayPal's payment page for everything in their cart (all competitions). */
-export async function startCheckout(provider: Provider): Promise<FormState> {
+export type CheckoutStart = { error?: string; payUrl?: string; orderId?: string };
+
+const failed = (error: string): CheckoutStart => ({ error });
+
+/**
+ * Start a Square or PayPal payment for everything in the cart (all competitions).
+ * Returns the payment page address; the browser opens it in a new tab.
+ */
+export async function startCheckout(provider: Provider): Promise<CheckoutStart> {
   const user = await requireUser();
   const ready = paymentsReady();
-  if (!ready[provider]) return fail("This payment option isn't switched on yet.");
+  if (!ready[provider]) return failed("This payment option isn't switched on yet.");
 
   const supabase = await createSupabase();
   const { data: orders } = await supabase
@@ -34,14 +41,14 @@ export async function startCheckout(provider: Provider): Promise<FormState> {
     .eq("status", "open")
     .order("created_at");
   const carts = (orders ?? []).filter((o) => o.order_items.length > 0);
-  if (carts.length === 0) return fail("Your cart is empty.");
+  if (carts.length === 0) return failed("Your cart is empty.");
 
   const closed: string[] = [];
   for (const o of carts) {
     const { data: open } = await supabase.rpc("entries_are_open", { ev: o.event_id });
     if (!open) closed.push(o.events?.name ?? "a competition");
   }
-  if (closed.length) return fail(`Entries have closed for ${closed.join(", ")}. Please remove those items, then pay for the rest.`);
+  if (closed.length) return failed(`Entries have closed for ${closed.join(", ")}. Please remove those items, then pay for the rest.`);
 
   const lead = carts[0].id;
   const totalCents = carts.reduce((sum, o) => sum + o.total_cents, 0);
@@ -69,7 +76,7 @@ export async function startCheckout(provider: Provider): Promise<FormState> {
   } catch (e) {
     console.error("Starting checkout failed", e);
     const message = e instanceof Error ? e.message : "";
-    return fail(
+    return failed(
       /^(Square|PayPal):/.test(message)
         ? `We couldn't start the payment. ${message}`
         : `We couldn't reach ${provider === "square" ? "Square" : "PayPal"}. Please try again in a minute.`,
@@ -82,9 +89,9 @@ export async function startCheckout(provider: Provider): Promise<FormState> {
     p_reference: started.reference,
     p_amount_cents: totalCents,
   });
-  if (error) return fail(error.message);
+  if (error) return failed(error.message);
 
-  redirect(started.payUrl);
+  return { payUrl: started.payUrl, orderId: lead };
 }
 
 /** "I've paid" / page load after returning: ask Square or PayPal again. */
@@ -97,4 +104,21 @@ export async function checkPayment(orderId: string): Promise<FormState> {
   if (!result.paid) return fail(result.reason);
   refresh();
   redirect(`/receipts/${order.id}`);
+}
+
+/** The cart tab asks this every few seconds while the payment tab is open. */
+export async function paymentStatus(orderId: string): Promise<{ paid: boolean; receiptOrderId?: string }> {
+  const user = await requireUser();
+  const supabase = await createSupabase();
+  const { data: order } = await supabase
+    .from("orders")
+    .select("id, status, checkout_provider")
+    .eq("id", orderId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!order) return { paid: false };
+  if (order.status === "paid") return { paid: true, receiptOrderId: order.id };
+  if (!order.checkout_provider) return { paid: false };
+  const result = await confirmCheckout(order.id);
+  return result.paid ? { paid: true, receiptOrderId: order.id } : { paid: false };
 }

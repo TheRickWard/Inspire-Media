@@ -5,9 +5,10 @@ import { createSupabase } from "@/lib/supabase/server";
 import { ActionForm } from "@/components/ActionForm";
 import { formatDateRange, formatMoney } from "@/lib/format";
 import { paymentsReady } from "@/lib/payments/config";
-import { button, buttonSmall, card, h1, h2, link, muted } from "@/components/ui";
+import { buttonSmall, card, h1, h2, link, muted } from "@/components/ui";
 import { removeFromCart } from "@/app/enter/actions";
-import { checkPayment, startCheckout } from "@/app/enter/checkout-actions";
+import { checkPayment } from "@/app/enter/checkout-actions";
+import { CheckoutButtons } from "@/components/CheckoutButtons";
 
 async function Cart({ searchParams }: { searchParams: Promise<{ payment?: string }> }) {
   const { payment } = await searchParams;
@@ -97,8 +98,7 @@ async function Cart({ searchParams }: { searchParams: Promise<{ payment?: string
               <p className="text-sm text-red-700">Remove the items for closed competitions first.</p>
             ) : pay.square || pay.paypal ? (
               <div className="space-y-2">
-                {pay.square && <ActionForm action={startCheckout.bind(null, "square")} submitLabel="Pay by card with Square" pendingLabel="Opening Square…" className="" buttonClassName={`${button} w-full`} />}
-                {pay.paypal && <ActionForm action={startCheckout.bind(null, "paypal")} submitLabel="Pay with PayPal" pendingLabel="Opening PayPal…" className="" buttonClassName={`${button} w-full`} />}
+                <CheckoutButtons square={pay.square} paypal={pay.paypal} />
                 {pay.testMode && <p className="text-xs font-medium text-amber-700">Test mode: no real money is taken.</p>}
               </div>
             ) : (
