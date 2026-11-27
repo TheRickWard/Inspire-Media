@@ -6,7 +6,7 @@
 - [ ] Set up a "forgot password" page and a proper sign-up confirmation page
 
 ### Portal stage 2 – Entries, cart, payments and receipts
-- [ ] Payment "webhooks" as a backup, so a payment is recorded even if the competitor closes the page before returning
+- [ ] Rick: set up the Square and PayPal webhooks and add SQUARE_WEBHOOK_SIGNATURE_KEY and PAYPAL_WEBHOOK_ID in Vercel
 - [ ] Refunds (done in Square/PayPal for now; show them in the portal later)
 - [ ] Organiser chooses what competitor accounts are allowed to do
 - [ ] Filter competitions by date, location, age and genre (once there are several)
@@ -34,6 +34,7 @@
 ## In Progress
 
 ## Done
+- [x] 2026-11-26 – Payment backup: Square and PayPal notifications (webhooks) record a payment even if the competitor closes the page; organisers can "Check with Square/PayPal" on unpaid carts
 - [x] 2026-11-26 – Item numbers in one click on the Program page: number only new entries (12A, 12B…) or renumber the whole program 1, 2, 3…
 - [x] 2026-11-26 – Organiser "Payments" tab per event: money received (by Square/PayPal), paid carts with receipts and contact, unpaid carts
 - [x] 2026-11-26 – Rick made test payments with Square and PayPal on the live site (both worked)

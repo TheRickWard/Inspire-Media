@@ -4,7 +4,9 @@ import { loadManagedEvent } from "@/lib/access";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { EventNav } from "@/components/EventNav";
 import { formatDateTime, formatMoney } from "@/lib/format";
-import { card, h2, link, muted } from "@/components/ui";
+import { buttonSmall, card, h2, link, muted } from "@/components/ui";
+import { ActionForm } from "@/components/ActionForm";
+import { checkCartPayment } from "@/app/org/payment-actions";
 
 const providerName: Record<string, string> = { square: "Square", paypal: "PayPal" };
 
@@ -124,6 +126,15 @@ async function Payments({ params }: { params: Promise<{ orgId: string; eventId: 
                     <td className="px-3 py-2 align-top">
                       {o.checkout_provider ? `Started paying with ${providerName[o.checkout_provider] ?? o.checkout_provider}` : "In cart"}
                       <span className="block text-xs text-slate-500">Cart started {formatDateTime(o.created_at)}</span>
+                      {o.checkout_provider && (
+                        <ActionForm
+                          action={checkCartPayment.bind(null, eventId, o.id)}
+                          submitLabel={`Check with ${providerName[o.checkout_provider] ?? "provider"}`}
+                          pendingLabel="Checking…"
+                          className="mt-1"
+                          buttonClassName={buttonSmall}
+                        />
+                      )}
                     </td>
                     <td className="px-5 py-2 text-right align-top font-medium">{formatMoney(o.total_cents)}</td>
                   </tr>
