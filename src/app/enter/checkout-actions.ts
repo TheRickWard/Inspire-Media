@@ -20,37 +20,47 @@ async function siteOrigin() {
   return `${proto}://${host}`;
 }
 
-/** Send the competitor to Square's or PayPal's payment page for their cart. */
-export async function startCheckout(orderId: string, provider: Provider): Promise<FormState> {
+/** Send the competitor to Square's or PayPal's payment page for everything in their cart (all competitions). */
+export async function startCheckout(provider: Provider): Promise<FormState> {
   const user = await requireUser();
   const ready = paymentsReady();
   if (!ready[provider]) return fail("This payment option isn't switched on yet.");
 
   const supabase = await createSupabase();
-  const { data: order } = await supabase
+  const { data: orders } = await supabase
     .from("orders")
-    .select("id, user_id, event_id, status, total_cents, events(name), order_items(id, fee_cents, studio_name, created_at, sections(code, name))")
-    .eq("id", orderId)
+    .select("id, event_id, total_cents, created_at, events(name), order_items(id, fee_cents, studio_name, created_at, sections(code, name))")
     .eq("user_id", user.id)
-    .maybeSingle();
-  if (!order || order.status !== "open") return fail("This cart can't be paid. Please refresh the page.");
-  if (order.order_items.length === 0 || order.total_cents <= 0) return fail("Your cart is empty.");
+    .eq("status", "open")
+    .order("created_at");
+  const carts = (orders ?? []).filter((o) => o.order_items.length > 0);
+  if (carts.length === 0) return fail("Your cart is empty.");
 
-  const { data: open } = await supabase.rpc("entries_are_open", { ev: order.event_id });
-  if (!open) return fail("Entries for this competition have closed.");
+  const closed: string[] = [];
+  for (const o of carts) {
+    const { data: open } = await supabase.rpc("entries_are_open", { ev: o.event_id });
+    if (!open) closed.push(o.events?.name ?? "a competition");
+  }
+  if (closed.length) return fail(`Entries have closed for ${closed.join(", ")}. Please remove those items, then pay for the rest.`);
 
-  const items = [...order.order_items].sort((a, b) => a.created_at.localeCompare(b.created_at));
+  const lead = carts[0].id;
+  const totalCents = carts.reduce((sum, o) => sum + o.total_cents, 0);
   const origin = await siteOrigin();
+  const several = carts.length > 1;
   const checkout = {
-    orderId: order.id,
-    description: `Entries: ${order.events?.name ?? "competition"}`,
-    lines: items.map((i) => ({
-      name: `Section ${i.sections?.code ?? ""} – ${i.sections?.name ?? "entry"}${i.studio_name ? " (studio entry)" : ""}`,
-      amountCents: i.fee_cents,
-    })),
-    totalCents: order.total_cents,
-    returnUrl: `${origin}/checkout/return?order=${order.id}`,
-    cancelUrl: `${origin}/enter/${order.event_id}?payment=cancelled`,
+    orderId: lead,
+    description: several ? `Entries: ${carts.length} competitions` : `Entries: ${carts[0].events?.name ?? "competition"}`,
+    lines: carts.flatMap((o) =>
+      [...o.order_items]
+        .sort((a, b) => a.created_at.localeCompare(b.created_at))
+        .map((i) => ({
+          name: `${several ? `${o.events?.name ?? "Competition"}: ` : ""}Section ${i.sections?.code ?? ""} – ${i.sections?.name ?? "entry"}${i.studio_name ? " (studio entry)" : ""}`,
+          amountCents: i.fee_cents,
+        })),
+    ),
+    totalCents,
+    returnUrl: `${origin}/checkout/return?order=${lead}`,
+    cancelUrl: `${origin}/cart?payment=cancelled`,
   };
 
   let started: StartedCheckout;
@@ -66,11 +76,11 @@ export async function startCheckout(orderId: string, provider: Provider): Promis
     );
   }
 
-  const { error } = await createAdminSupabase().rpc("record_checkout", {
-    p_order: order.id,
+  const { error } = await createAdminSupabase().rpc("record_checkout_group", {
+    p_orders: carts.map((o) => o.id),
     p_provider: provider,
     p_reference: started.reference,
-    p_amount_cents: order.total_cents,
+    p_amount_cents: totalCents,
   });
   if (error) return fail(error.message);
 

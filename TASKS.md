@@ -3,6 +3,7 @@
 ## To Do
 
 ### Going live
+- [ ] Rick: run migration 20261127020000_one_cart.sql in the live Supabase SQL Editor
 - [ ] Rick: in Supabase > Authentication > URL Configuration, set Site URL to the live address and add https://inspire-media-tau.vercel.app/** to Redirect URLs (needed for reset links)
 - [ ] Have the Privacy and terms page checked; add CONTACT_EMAIL in Vercel
 - [ ] Set up a custom email sender in Supabase (the built-in one only sends a few emails an hour)
@@ -37,6 +38,8 @@
 ## In Progress
 
 ## Done
+
+- [x] 2026-11-27 – One cart for several competitions: a Cart page pays for every competition in one Square/PayPal payment; each competition still gets its own receipt
 
 - [x] 2026-11-27 – Forgot password / choose new password pages; Enter button on public event pages; sign-in returns you to the page you were on; draft Privacy and terms page linked in the footer and sign-up
 

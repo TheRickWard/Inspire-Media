@@ -36,6 +36,16 @@ async function Receipt({ params, searchParams }: { params: Promise<{ orderId: st
   }
   const dancerName = new Map((dancers ?? []).map((d) => [d.id, d.full_name]));
   const items = [...order.order_items].sort((a, b) => a.created_at.localeCompare(b.created_at));
+  // Other receipts paid in the same Square/PayPal payment (one per competition).
+  const { data: siblings } = order.payment_reference
+    ? await supabase
+        .from("orders")
+        .select("id, receipt_number, events(name)")
+        .eq("user_id", order.user_id)
+        .eq("payment_provider", order.payment_provider ?? "")
+        .eq("payment_reference", order.payment_reference)
+        .neq("id", order.id)
+    : { data: [] };
   const abn = process.env.RECEIPT_ABN?.trim();
   const business = process.env.RECEIPT_BUSINESS_NAME?.trim() || "Inspire Dance & Fitness";
 
@@ -51,6 +61,20 @@ async function Receipt({ params, searchParams }: { params: Promise<{ orderId: st
       {isNew && (
         <div className={`${card} border-emerald-200 bg-emerald-50 print:hidden`}>
           <p className="text-sm font-medium text-emerald-800">Payment received, thank you! Your entries are now in the program.</p>
+        </div>
+      )}
+
+      {(siblings ?? []).length > 0 && (
+        <div className={`${card} print:hidden`}>
+          <p className="text-sm text-slate-700">
+            This payment also covered:{" "}
+            {(siblings ?? []).map((o, i) => (
+              <span key={o.id}>
+                {i > 0 && ", "}
+                <Link href={`/receipts/${o.id}${isNew ? "?new=1" : ""}`} className={link}>{o.receipt_number}</Link> ({o.events?.name})
+              </span>
+            ))}
+          </p>
         </div>
       )}
 

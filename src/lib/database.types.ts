@@ -207,14 +207,14 @@ isOneToOne: false
                   ]
                 },"orders": {
                   Row: {
-                    "checkout_amount_cents": number | null,"checkout_provider": string | null,"checkout_reference": string | null,"created_at": string,"event_id": string,"id": string,"paid_amount_cents": number | null,"paid_at": string | null,"payment_provider": string | null,"payment_reference": string | null,"provider_receipt_url": string | null,"receipt_number": string | null,"status": Database["public"]['Enums']["order_status"],"total_cents": number,"user_id": string
+                    "checkout_amount_cents": number | null,"checkout_group": string | null,"checkout_group_cents": number | null,"checkout_provider": string | null,"checkout_reference": string | null,"created_at": string,"event_id": string,"id": string,"paid_amount_cents": number | null,"paid_at": string | null,"payment_provider": string | null,"payment_reference": string | null,"provider_receipt_url": string | null,"receipt_number": string | null,"status": Database["public"]['Enums']["order_status"],"total_cents": number,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "checkout_amount_cents"?: number | null,"checkout_provider"?: string | null,"checkout_reference"?: string | null,"created_at"?: string,"event_id": string,"id"?: string,"paid_amount_cents"?: number | null,"paid_at"?: string | null,"payment_provider"?: string | null,"payment_reference"?: string | null,"provider_receipt_url"?: string | null,"receipt_number"?: string | null,"status"?: Database["public"]['Enums']["order_status"],"total_cents"?: number,"user_id": string
+                    "checkout_amount_cents"?: number | null,"checkout_group"?: string | null,"checkout_group_cents"?: number | null,"checkout_provider"?: string | null,"checkout_reference"?: string | null,"created_at"?: string,"event_id": string,"id"?: string,"paid_amount_cents"?: number | null,"paid_at"?: string | null,"payment_provider"?: string | null,"payment_reference"?: string | null,"provider_receipt_url"?: string | null,"receipt_number"?: string | null,"status"?: Database["public"]['Enums']["order_status"],"total_cents"?: number,"user_id": string
                   }
                   Update: {
-                    "checkout_amount_cents"?: number | null,"checkout_provider"?: string | null,"checkout_reference"?: string | null,"created_at"?: string,"event_id"?: string,"id"?: string,"paid_amount_cents"?: number | null,"paid_at"?: string | null,"payment_provider"?: string | null,"payment_reference"?: string | null,"provider_receipt_url"?: string | null,"receipt_number"?: string | null,"status"?: Database["public"]['Enums']["order_status"],"total_cents"?: number,"user_id"?: string
+                    "checkout_amount_cents"?: number | null,"checkout_group"?: string | null,"checkout_group_cents"?: number | null,"checkout_provider"?: string | null,"checkout_reference"?: string | null,"created_at"?: string,"event_id"?: string,"id"?: string,"paid_amount_cents"?: number | null,"paid_at"?: string | null,"payment_provider"?: string | null,"payment_reference"?: string | null,"provider_receipt_url"?: string | null,"receipt_number"?: string | null,"status"?: Database["public"]['Enums']["order_status"],"total_cents"?: number,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -332,6 +332,9 @@ isOneToOne: false
 "can_manage_event":
 { Args: { "ev": string }; Returns: boolean
                            },
+"complete_checkout_group":
+{ Args: { "p_group": string,"p_paid_cents": number,"p_provider": string,"p_receipt_url": string,"p_reference": string }; Returns: (string)[]
+                           },
 "complete_order":
 { Args: { "p_order": string,"p_paid_cents": number,"p_provider": string,"p_receipt_url": string,"p_reference": string }; Returns: string
                            },
@@ -376,6 +379,9 @@ isOneToOne: false
                            },
 "record_checkout":
 { Args: { "p_amount_cents": number,"p_order": string,"p_provider": string,"p_reference": string }; Returns: undefined
+                           },
+"record_checkout_group":
+{ Args: { "p_amount_cents": number,"p_orders": (string)[],"p_provider": string,"p_reference": string }; Returns: undefined
                            },
 "remove_from_cart":
 { Args: { "item": string }; Returns: undefined
