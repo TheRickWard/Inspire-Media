@@ -42,10 +42,10 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   };
 }
 
-/** The signed-in person; sends visitors to the sign-in page. */
-export async function requireUser(): Promise<CurrentUser> {
+/** The signed-in person; sends visitors to the sign-in page (and back to `returnTo` afterwards). */
+export async function requireUser(returnTo?: string): Promise<CurrentUser> {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(returnTo ? `/login?next=${encodeURIComponent(returnTo)}` : "/login");
   return user;
 }
 
