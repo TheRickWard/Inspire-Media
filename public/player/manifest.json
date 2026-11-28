@@ -1,7 +1,7 @@
 {
-  "name": "Inspire Sound Desk",
-  "short_name": "Sound Desk",
-  "description": "Offline music player for the sound desk at Inspire competitions.",
+  "name": "Inspire MediaPlay",
+  "short_name": "MediaPlay",
+  "description": "Inspire MediaPlay: offline music player for the sound desk at Inspire competitions.",
   "start_url": "/player/index.html",
   "scope": "/player/",
   "display": "standalone",

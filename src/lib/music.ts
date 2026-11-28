@@ -28,7 +28,7 @@ export function formatFileSize(bytes: number): string {
 
 /**
  * File name inside the sound-desk download. The running-order number goes first
- * so the files sort like the program (in a folder and in the Sound Desk player),
+ * so the files sort like the program (in a folder and in Inspire MediaPlay),
  * then competitor, section and music title (left out when there isn't one):
  * "003 - Jane Jones - Junior Jazz Solo - Shake It Off.mp3".
  */
