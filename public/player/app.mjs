@@ -125,6 +125,7 @@ function render() {
   $("playNextBtn").disabled = locked || !next;
 
   renderUsb(locked, playing);
+  renderCheck();
 
   const q = search.trim().toLowerCase();
   const shown = tracks.map((t, i) => [t, i]).filter(([t]) => !q || matches(t, q));
@@ -136,7 +137,7 @@ function render() {
   list.replaceChildren(
     ...shown.map(([t, i]) => {
       const li = document.createElement("li");
-      li.className = `row${t.id === current ? " current" : ""}${!locked && next && t.id === next.id ? " next" : ""}${t.played ? " played" : ""}${t.scratched ? " scratched" : ""}`;
+      li.className = `row${t.id === current ? " current" : ""}${!locked && next && t.id === next.id ? " next" : ""}${t.played ? " played" : ""}${t.scratched ? " scratched" : ""}${problemOf(t) ? " error" : ""}`;
       const playBtn = button(t.id === current ? (playing ? "On air" : "Paused") : "Play", "play", () => play(t.id));
       playBtn.disabled = locked || t.scratched; // a scratched item can't be played by accident
       playBtn.setAttribute("aria-label", `Play ${describe(t)}`);
@@ -150,9 +151,11 @@ function render() {
       if (t.late) strong.append(tag("Late", "tag-late"));
       if (t.played) strong.append(tag("Played", "tag-played"));
       if (t.scratched) strong.append(tag("Scratched", "tag-scratched"));
+      const problem = problemOf(t);
+      if (problem) strong.append(tag("Problem", "tag-error"));
       const len = lengthTag(t);
       const small = document.createElement("small");
-      small.textContent = t.detail || t.fileName;
+      small.textContent = problem ? `⚠ ${problem}` : t.detail || t.fileName;
       small.title = t.fileName;
       who.append(strong, small);
       const tools = document.createElement("span");
@@ -194,7 +197,7 @@ function lengthTag(t) {
   const s = document.createElement("span");
   const d = durations[t.id];
   s.className = "len";
-  s.textContent = d ? formatTime(d) : "";
+  s.textContent = d > 0 ? formatTime(d) : "";
   return s;
 }
 function tag(text, cls) {
@@ -231,7 +234,8 @@ function renderUsb(locked, playing) {
   $("usbList").replaceChildren(
     ...usbFiles.map((t) => {
       const li = document.createElement("li");
-      li.className = `usb-row${t.id === current ? " current" : ""}`;
+      li.className = `usb-row${t.id === current ? " current" : ""}${problemOf(t) ? " error" : ""}`;
+      li.title = problemOf(t) ?? "";
       const playBtn = button(t.id === current ? (playing ? "On air" : "Paused") : "Play", "play play-small", () => play(t.id));
       playBtn.disabled = locked;
       playBtn.setAttribute("aria-label", `Play ${t.fileName}`);
@@ -562,6 +566,45 @@ $("lateInput").addEventListener("change", async (ev) => {
 // Lengths are read one song at a time in the background, using a separate
 // player that never makes a sound, and kept on the device for list songs.
 let measuring = false;
+
+// What's wrong with a song, once it has been checked (null = fine or not checked yet).
+const SHORTEST = 5; // seconds
+function problemOf(t) {
+  if (!(t.id in durations)) return null;
+  const d = durations[t.id];
+  if (!t.blob.size) return "The file is empty";
+  if (d === 0) return "Can't be played: the file may be damaged or in a format this device can't play";
+  if (d > 0 && d < SHORTEST) return `Very short (${formatTime(d)}): check it's the right file`;
+  return null;
+}
+
+// The music check box under the USB / folder panel.
+function renderCheck() {
+  const all = [...tracks, ...usbFiles];
+  const box = $("checkBox");
+  box.hidden = all.length === 0;
+  if (!all.length) return;
+  const checked = all.filter((t) => t.id in durations).length;
+  const problems = all.map((t) => [t, problemOf(t)]).filter(([, p]) => p);
+  box.className = `check ${problems.length ? "bad" : checked < all.length ? "busy" : "good"}`;
+  $("checkStatus").textContent =
+    checked < all.length
+      ? `Checking music… ${checked} of ${all.length}`
+      : problems.length
+        ? `${problems.length} ${problems.length === 1 ? "song has a problem" : "songs have problems"}`
+        : `All ${all.length} songs checked: no problems found`;
+  $("checkList").replaceChildren(
+    ...problems.map(([t, p]) => {
+      const li = document.createElement("li");
+      const who = document.createElement("strong");
+      who.textContent = `${t.usb ? "USB: " : ""}${t.item ? `Item ${t.item} – ` : t.order != null ? `${t.order}. ` : ""}${t.performer}`;
+      const why = document.createElement("span");
+      why.textContent = p;
+      li.append(who, why);
+      return li;
+    }),
+  );
+}
 async function measureDurations() {
   if (measuring) return;
   measuring = true;
@@ -573,11 +616,13 @@ async function measureDurations() {
     for (;;) {
       const t = [...tracks, ...usbFiles].find((x) => !(x.id in durations));
       if (!t) break;
+      if (!t.blob.size) { durations[t.id] = 0; found++; continue; }
       const url = URL.createObjectURL(t.blob);
       const d = await new Promise((resolve) => {
         const done = (v) => { clearTimeout(timer); probe.onloadedmetadata = probe.onerror = null; resolve(v); };
         const timer = setTimeout(() => done(0), 15000);
-        probe.onloadedmetadata = () => done(Number.isFinite(probe.duration) ? probe.duration : 0);
+        // Opened but no length given (rare, some MP3s): readable, length unknown.
+        probe.onloadedmetadata = () => done(Number.isFinite(probe.duration) ? probe.duration : -1);
         probe.onerror = () => done(0);
         probe.src = url;
       });

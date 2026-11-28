@@ -48,6 +48,7 @@
 
 ## Done
 
+- [x] 2026-11-28 – Sound Desk: music check on import: every song (list and USB) is opened and measured; empty, unplayable or very short (under 5 s) songs are highlighted red, and a "Music check" box under the USB panel lists them
 - [x] 2026-11-28 – Sound Desk: Scratch button on each song: greyed out and crossed through, can't be played, skipped by "Play next", Unscratch puts it back
 - [x] 2026-11-28 – Sound Desk: Fade out button (3 seconds, big player and USB player), search box for the list, song lengths (time limit removed 28 Nov at Rick's request), played songs highlighted in Inspire blue
 - [x] 2026-11-28 – Sound Desk: USB / folder panel on the left plays music straight from a USB stick or folder without adding it to the list, with its own small player (still only one song at a time)

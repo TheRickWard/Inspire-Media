@@ -195,6 +195,21 @@ main { flex: 1; padding: 0 16px; }
 .tag { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 700; vertical-align: middle; }
 .tag-late { background: #fff1d6; color: #8a4b00; }
 .tag-played { background: var(--blue); color: #fff; }
+.tag-error { background: var(--red); color: #fff; }
+.row.error { background: #fdecec; box-shadow: inset 4px 0 0 var(--red); }
+.row.error .who small { color: #a3141a; font-weight: 600; white-space: normal; }
+.usb-row.error { background: #fdecec; box-shadow: inset 3px 0 0 var(--red); }
+.usb-row.error .usb-name { color: #a3141a; }
+.check { margin-top: 14px; padding: 10px 12px; border-radius: 10px; background: #fff; border: 2px solid var(--line); }
+.check.good { border-color: var(--green); }
+.check.good .check-status { color: var(--green-dark); }
+.check.bad { border-color: var(--red); background: #fdecec; }
+.check.bad .check-status, .check.bad .label { color: #a3141a; }
+.check-status { margin: 2px 0 0; font-weight: 700; font-size: 0.9rem; }
+.check-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 30vh; overflow-y: auto; }
+.check-list li { font-size: 0.82rem; line-height: 1.35; }
+.check-list strong { display: block; overflow-wrap: anywhere; }
+.check-list span { color: #a3141a; }
 .tag-scratched { background: #6b6670; color: #fff; text-decoration: none; }
 .row.scratched { background: #efeef1; box-shadow: none; }
 .row.scratched .item, .row.scratched .who, .row.scratched .len { opacity: 0.55; }

@@ -135,3 +135,7 @@ A USB song shows in its own small player (progress, Pause, Stop, Back to start) 
 ## 2026-11-28 – Sound Desk: no time limit on tracks
 **Decision:** The player's "Time limit" setting and ⚠ warnings are removed. Song lengths are still shown.
 **Why:** Rick asked not to have a time limit on tracks (28 Nov). This replaces the time-limit part of "fade out, search, song lengths, played in blue".
+
+## 2026-11-28 – Sound Desk: music check on import
+**Decision:** After music is loaded (or chosen in the USB / folder panel), the player opens every song in the background and flags a problem when the file is empty, can't be played on this device (damaged or an unsupported format), or is under 5 seconds long. Problem songs are highlighted red in the list with the reason, and a "Music check" box at the bottom of the left panel shows progress, then "no problems found" (green) or the list of problems (red). Results are kept on the device. It can't catch a glitch partway through a song that otherwise opens normally.
+**Why:** Rick asked (28 Nov) for all tracks to be checked for errors on import, highlighted red, with a notification box under the USB section.
