@@ -15,21 +15,28 @@ export function isAudioFile(name) {
 
 /**
  * Understand a file name from the portal's "Download all music" zip:
- * "003 - Item 12A - Jane Jones.mp3" -> { order: 3, item: "12A", performer: "Jane Jones" }.
- * Other names (e.g. late music from a USB stick) still work: the item number is
- * picked up if the name starts with one ("12B Jane.mp3", "Item 12B - Jane.mp3").
+ * "003 - Jane Jones - Junior Jazz Solo - Shake It Off.mp3"
+ *   -> { order: 3, item: null, performer: "Jane Jones", detail: "Junior Jazz Solo - Shake It Off" }.
+ * Older portal zips ("003 - Item 12A - Jane Jones.mp3") still work.
+ * Other names (e.g. late music from a USB stick) still work too: the item number
+ * is picked up if the name starts with one ("12B Jane.mp3", "Item 12B - Jane.mp3").
  */
 export function parseTrackName(fileName) {
   const base = (fileName.split("/").pop() ?? fileName).replace(/\.[a-z0-9]+$/i, "").trim();
-  const portal = /^(\d{1,4})\s*-\s*(?:Item\s+(.+?)|No item number)\s*-\s*(.+)$/i.exec(base);
+  const older = /^(\d{1,4})\s*-\s*(?:Item\s+(.+?)|No item number)\s*-\s*(.+)$/i.exec(base);
+  if (older) {
+    return { order: Number(older[1]), item: older[2]?.trim() || null, performer: older[3].trim(), detail: "" };
+  }
+  const portal = /^(\d{3,4}) - (.+)$/.exec(base);
   if (portal) {
-    return { order: Number(portal[1]), item: portal[2]?.trim() || null, performer: portal[3].trim() };
+    const [performer, ...rest] = portal[2].split(" - ");
+    return { order: Number(portal[1]), item: null, performer: performer.trim(), detail: rest.join(" - ").trim() };
   }
   const loose = /^(?:Item\s*)?(\d{1,4}[A-Z]?)\b\s*[-–_.]?\s*(.*)$/i.exec(base);
   if (loose) {
-    return { order: null, item: loose[1].toUpperCase(), performer: loose[2].trim() || base };
+    return { order: null, item: loose[1].toUpperCase(), performer: loose[2].trim() || base, detail: "" };
   }
-  return { order: null, item: null, performer: base };
+  return { order: null, item: null, performer: base, detail: "" };
 }
 
 /** Split an item number like "12A" into [12, "A"] for sorting. */

@@ -68,7 +68,7 @@ function nextTrack() {
   const from = tracks.findIndex((t) => t.id === (current ?? lastFinished)) + 1;
   return tracks.slice(from).find((t) => !t.played && t.id !== current) ?? tracks.find((t) => !t.played && t.id !== current) ?? null;
 }
-const describe = (t) => (t.item ? `Item ${t.item} – ${t.performer}` : t.performer);
+const describe = (t) => [t.item ? `Item ${t.item}` : "", t.performer, t.detail ?? ""].filter(Boolean).join(" – ");
 
 function notice(text, kind = "") {
   const n = $("notice");
@@ -115,7 +115,7 @@ function render() {
       playBtn.setAttribute("aria-label", `Play ${describe(t)}`);
       const item = document.createElement("span");
       item.className = "item";
-      item.textContent = t.item ?? "–";
+      item.textContent = t.item ?? (t.order != null ? String(t.order) : "–");
       const who = document.createElement("span");
       who.className = "who";
       const strong = document.createElement("strong");
@@ -123,7 +123,8 @@ function render() {
       if (t.late) strong.append(tag("Late", "tag-late"));
       if (t.played) strong.append(tag("Played", "tag-played"));
       const small = document.createElement("small");
-      small.textContent = t.fileName;
+      small.textContent = t.detail || t.fileName;
+      small.title = t.fileName;
       who.append(strong, small);
       const tools = document.createElement("span");
       tools.className = "tools";
@@ -375,16 +376,18 @@ $("lateInput").addEventListener("change", async (ev) => {
     const { tracks: found } = await filesToTracks(files);
     if (!found.length) throw new Error("No music files (MP3, M4A, WAV or AAC) were found in what you chose.");
     const placed = [];
+    let atEnd = false;
     for (const t of sortImported(found)) {
       t.late = true;
-      tracks.splice(latePosition(tracks, t), 0, t);
+      const at = latePosition(tracks, t);
+      if (at === tracks.length) atEnd = true;
+      tracks.splice(at, 0, t);
       placed.push(t.item ? `Item ${t.item}` : t.performer);
     }
     tracks.forEach((t, i) => { t.pos = i; });
     await saveTracks(found);
     await savePositions();
-    const atEnd = found.some((t) => !t.item);
-    notice(`Added ${placed.join(", ")}.${atEnd ? " Songs without an item number in the file name went to the end: use ▲ ▼ to move them." : " Each was placed by its item number; use ▲ ▼ to adjust."}`, "ok");
+    notice(`Added ${placed.join(", ")}.${atEnd ? " Late music went to the end of the list: use ▲ ▼ to move it into place." : " Each was placed by its item number; use ▲ ▼ to adjust."}`, "ok");
   } catch (e) {
     notice(storageError(e), "error");
     const saved = await loadSaved().catch(() => ({ tracks: [], name: "" }));

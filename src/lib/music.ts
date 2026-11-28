@@ -27,12 +27,14 @@ export function formatFileSize(bytes: number): string {
 }
 
 /**
- * File name inside the sound-desk download, so the files sort in running order:
- * "003 - Item 12A - Jane Jones.mp3".
+ * File name inside the sound-desk download. The running-order number goes first
+ * so the files sort like the program (in a folder and in the Sound Desk player),
+ * then competitor, section and music title (left out when there isn't one):
+ * "003 - Jane Jones - Junior Jazz Solo - Shake It Off.mp3".
  */
-export function playlistFileName(order: number, itemNumber: string | null, performer: string, ext: string): string {
-  const clean = (s: string) => s.replace(/[\\/:*?"<>|\u0000-\u001f]+/g, " ").replace(/\s+/g, " ").trim();
-  const item = itemNumber ? `Item ${clean(itemNumber)}` : "No item number";
-  const name = clean(performer).slice(0, 80) || "Performer";
-  return `${String(order).padStart(3, "0")} - ${item} - ${name}.${ext}`;
+export function playlistFileName(order: number, performer: string, section: string, musicTitle: string | null, ext: string): string {
+  // " - " separates the parts, so a dash inside a name becomes "–".
+  const clean = (s: string) => s.replace(/[\\/:*?"<>|\u0000-\u001f]+/g, " ").replace(/\s+-\s+/g, " – ").replace(/\s+/g, " ").trim();
+  const parts = [clean(performer).slice(0, 80) || "Performer", clean(section).slice(0, 60), clean(musicTitle ?? "").slice(0, 60)].filter(Boolean);
+  return `${String(order).padStart(3, "0")} - ${parts.join(" - ")}.${ext}`;
 }

@@ -8,21 +8,24 @@ import { formatTime, isAudioFile, latePosition, parseTrackName, readZip, sortImp
 import { buildZip } from "../src/lib/zip.ts";
 import { playlistFileName } from "../src/lib/music.ts";
 
-type Track = { fileName: string; order: number | null; item: string | null; performer: string };
+type Track = { fileName: string; order: number | null; item: string | null; performer: string; detail: string };
 const track = (fileName: string): Track => ({ fileName, ...parseTrackName(fileName) });
 
 test("reads the portal's music file names", () => {
-  assert.deepEqual(parseTrackName("003 - Item 12A - Jane Jones.mp3"), { order: 3, item: "12A", performer: "Jane Jones" });
-  assert.deepEqual(parseTrackName("010 - No item number - Starlight Studio.m4a"), { order: 10, item: null, performer: "Starlight Studio" });
-  assert.deepEqual(parseTrackName("Event/001 - Item 1 - Zoë - Smith.wav"), { order: 1, item: "1", performer: "Zoë - Smith" });
+  assert.deepEqual(parseTrackName("003 - Jane Jones - Junior Jazz Solo - Shake It Off.mp3"), { order: 3, item: null, performer: "Jane Jones", detail: "Junior Jazz Solo - Shake It Off" });
+  assert.deepEqual(parseTrackName("Event/010 - Starlight Studio - Troupe Open.m4a"), { order: 10, item: null, performer: "Starlight Studio", detail: "Troupe Open" });
   // Names made by the portal always parse back to the same details.
-  assert.deepEqual(parseTrackName(playlistFileName(42, "7B", "Mia & Co", "mp3")), { order: 42, item: "7B", performer: "Mia & Co" });
+  assert.deepEqual(parseTrackName(playlistFileName(42, "Mia - Co", "Duo 10 & Under", null, "mp3")), { order: 42, item: null, performer: "Mia – Co", detail: "Duo 10 & Under" });
+  // Zips from before 28 Nov still load.
+  assert.deepEqual(parseTrackName("003 - Item 12A - Jane Jones.mp3"), { order: 3, item: "12A", performer: "Jane Jones", detail: "" });
+  assert.deepEqual(parseTrackName("010 - No item number - Starlight Studio.m4a"), { order: 10, item: null, performer: "Starlight Studio", detail: "" });
 });
 
 test("late music from a USB stick: item number picked up when the name starts with one", () => {
-  assert.deepEqual(parseTrackName("12b Jane late.mp3"), { order: null, item: "12B", performer: "Jane late" });
-  assert.deepEqual(parseTrackName("Item 7 - Sam.mp3"), { order: null, item: "7", performer: "Sam" });
-  assert.deepEqual(parseTrackName("Jane final mix.mp3"), { order: null, item: null, performer: "Jane final mix" });
+  assert.deepEqual(parseTrackName("12b Jane late.mp3"), { order: null, item: "12B", performer: "Jane late", detail: "" });
+  assert.deepEqual(parseTrackName("Item 7 - Sam.mp3"), { order: null, item: "7", performer: "Sam", detail: "" });
+  assert.deepEqual(parseTrackName("12 - Sam.mp3"), { order: null, item: "12", performer: "Sam", detail: "" });
+  assert.deepEqual(parseTrackName("Jane final mix.mp3"), { order: null, item: null, performer: "Jane final mix", detail: "" });
 });
 
 test("only music files are imported", () => {

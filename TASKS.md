@@ -37,6 +37,7 @@
 ### Ideas noticed along the way
 - [ ] Sound Desk: a "Fade out" button (instead of an abrupt Stop)
 - [ ] Sound Desk: choose the sound output (e.g. USB sound card) inside the app on Windows; on iPad it's chosen in Control Centre
+- [ ] Ask competitors for a music title when they upload music (needs a database change)
 - [ ] Sound Desk: show each song's length in the list before it plays
 - [ ] Organisers sign up themselves and pay Inspire a fee (how they pay is still to be decided)
 - [ ] Move a whole section earlier or later in the running order
@@ -47,6 +48,7 @@
 
 ## Done
 
+- [x] 2026-11-28 – Music download names are now "003 - Competitor - Section - Music title" (title only if set); Sound Desk player shows competitor and section and still reads older zips
 - [x] 2026-11-28 – Sound Desk player (offline, installable web app at /player): loads the portal's music zip (or files from a folder/USB) in running order, big Play/Pause/Stop/Back to start, other songs locked while one is playing, volume slider, "Play next", late music placed by item number, music kept on the device so it works with no internet; link on the organiser Music tab; 9 player tests
 - [x] 2026-11-28 – Fixed: the home page showed "No competitions are published yet" to signed-out visitors on the live site (it asked for organisation names, which visitors can't read). Added `npm run db:live-grants` so local tests use live-style permissions
 - [x] 2026-11-28 – Checkout opens Square/PayPal in a new tab; the cart tab shows the receipt once paid
