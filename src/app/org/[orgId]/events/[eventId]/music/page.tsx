@@ -76,6 +76,11 @@ async function Music({ params }: { params: Promise<{ orgId: string; eventId: str
             ))}
           </div>
         )}
+        <p className="border-t border-slate-100 pt-3 text-sm text-slate-600">
+          At the venue, open the{" "}
+          <a href="/player/index.html" target="_blank" rel="noopener" className={link}>Sound Desk player</a>{" "}
+          on the sound-desk laptop or iPad, install it as an app, and load this zip into it. It plays the music in running order with no internet.
+        </p>
       </section>
 
       <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Inspire Sound Desk</title>
+  <meta name="description" content="Offline music player for the sound desk at Inspire competitions.">
+  <meta name="theme-color" content="#5e3a98">
+  <link rel="manifest" href="/player/manifest.json">
+  <link rel="icon" href="/player/icon-192.png">
+  <link rel="apple-touch-icon" href="/player/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Sound Desk">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="stylesheet" href="/player/style.css">
+</head>
+<body>
+  <header class="top">
+    <img src="/player/icon-192.png" alt="" class="logo">
+    <div class="title">
+      <h1>Sound Desk</h1>
+      <p id="listName" class="muted">No music loaded</p>
+    </div>
+    <div class="actions">
+      <button type="button" id="loadBtn" class="btn">Load music</button>
+      <button type="button" id="lateBtn" class="btn" disabled>Add late music</button>
+      <button type="button" id="clearBtn" class="btn btn-quiet" disabled>Clear list</button>
+    </div>
+    <input type="file" id="loadInput" accept=".zip,.mp3,.m4a,.wav,.aac,audio/*,application/zip" multiple hidden>
+    <input type="file" id="lateInput" accept=".zip,.mp3,.m4a,.wav,.aac,audio/*,application/zip" multiple hidden>
+  </header>
+
+  <div id="notice" class="notice" role="status" hidden></div>
+
+  <section class="deck" aria-label="Now playing">
+    <div class="now">
+      <p class="label" id="nowLabel">Ready</p>
+      <p class="now-title" id="nowTitle">Choose a song to play</p>
+      <div class="progress" aria-hidden="true"><div id="progressBar"></div></div>
+      <p class="times"><span id="elapsed">0:00</span><span id="remaining"></span></p>
+      <div class="controls">
+        <button type="button" id="pauseBtn" class="big" disabled>Pause</button>
+        <button type="button" id="stopBtn" class="big big-stop" disabled>Stop</button>
+        <button type="button" id="restartBtn" class="big big-quiet" disabled>Back to start</button>
+      </div>
+    </div>
+    <div class="side">
+      <label class="volume">
+        <span>Volume <strong id="volumeValue">80%</strong></span>
+        <input type="range" id="volume" min="0" max="100" step="1" value="80">
+      </label>
+      <div class="next">
+        <p class="label">Up next</p>
+        <p class="next-title" id="nextTitle">–</p>
+        <button type="button" id="playNextBtn" class="big big-play" disabled>Play next</button>
+      </div>
+    </div>
+  </section>
+
+  <main>
+    <div id="empty" class="empty">
+      <h2>Load the music for your event</h2>
+      <ol>
+        <li>In the portal, open your competition's <strong>Music</strong> tab and press <strong>Download all music</strong> (whole event or one session).</li>
+        <li>Here, press <strong>Load music</strong> and choose that zip file. You can also choose music files straight from a folder or USB stick.</li>
+        <li>The songs appear in running order and are kept on this device, so the player works with no internet.</li>
+      </ol>
+      <p class="muted">Install this page as an app so it opens offline: on Windows use Edge or Chrome's <strong>Install app</strong> button in the address bar; on iPad tap <strong>Share</strong> then <strong>Add to Home Screen</strong>, and load the music inside the installed app.</p>
+    </div>
+    <ol id="list" class="list" aria-label="Running order"></ol>
+  </main>
+
+  <footer class="foot muted">
+    <span id="storage"></span>
+    <span id="offline"></span>
+  </footer>
+
+  <audio id="audio" preload="auto"></audio>
+  <script type="module" src="/player/app.mjs"></script>
+</body>
+</html>
