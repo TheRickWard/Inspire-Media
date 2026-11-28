@@ -139,3 +139,7 @@ A USB song shows in its own small player (progress, Pause, Stop, Back to start) 
 ## 2026-11-28 – Sound Desk: music check on import
 **Decision:** After music is loaded (or chosen in the USB / folder panel), the player opens every song in the background and flags a problem when the file is empty, can't be played on this device (damaged or an unsupported format), or is under 5 seconds long. Problem songs are highlighted red in the list with the reason, and a "Music check" box at the bottom of the left panel shows progress, then "no problems found" (green) or the list of problems (red). Results are kept on the device. It can't catch a glitch partway through a song that otherwise opens normally.
 **Why:** Rick asked (28 Nov) for all tracks to be checked for errors on import, highlighted red, with a notification box under the USB section.
+
+## 2026-11-28 – Player name: Inspire MediaPlay
+**Decision:** The sound-desk music player is called "Inspire MediaPlay" (page title, heading, installed app name; "MediaPlay" under the icon, where long names get cut off). It still lives at /player.
+**Why:** Rick chose the name (28 Nov).
