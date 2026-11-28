@@ -35,10 +35,12 @@
 - [ ] Voice critique recording (adjudicator), offline, with scores
 
 ### Ideas noticed along the way
-- [ ] Sound Desk: a "Fade out" button (instead of an abrupt Stop)
 - [ ] Sound Desk: choose the sound output (e.g. USB sound card) inside the app on Windows; on iPad it's chosen in Control Centre
 - [ ] Ask competitors for a music title when they upload music (needs a database change)
-- [ ] Sound Desk: show each song's length in the list before it plays
+- [ ] Sound Desk: section headings in the list
+- [ ] Sound Desk: played log (what played when) saved as a spreadsheet
+- [ ] Sound Desk: scratched items greyed out (load the program from the portal)
+- [ ] Per-section time limits in the portal, carried into the player (player has one time limit for now)
 - [ ] Organisers sign up themselves and pay Inspire a fee (how they pay is still to be decided)
 - [ ] Move a whole section earlier or later in the running order
 - [ ] Clear a whole program in one step (for re-importing a corrected CSV)
@@ -48,6 +50,7 @@
 
 ## Done
 
+- [x] 2026-11-28 – Sound Desk: Fade out button (3 seconds, big player and USB player), search box for the list, song lengths with a time-limit warning (⚠), played songs highlighted in Inspire blue
 - [x] 2026-11-28 – Sound Desk: USB / folder panel on the left plays music straight from a USB stick or folder without adding it to the list, with its own small player (still only one song at a time)
 - [x] 2026-11-28 – Music download names are now "003 - Competitor - Section - Music title" (title only if set); Sound Desk player shows competitor and section and still reads older zips
 - [x] 2026-11-28 – Sound Desk player (offline, installable web app at /player): loads the portal's music zip (or files from a folder/USB) in running order, big Play/Pause/Stop/Back to start, other songs locked while one is playing, volume slider, "Play next", late music placed by item number, music kept on the device so it works with no internet; link on the organiser Music tab; 9 player tests

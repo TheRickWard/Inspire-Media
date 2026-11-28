@@ -1,6 +1,6 @@
 // Sound-desk player screen. Music is kept on this device (IndexedDB) so the
 // player works with no internet; the page itself is kept by sw.js.
-import { formatTime, isAudioFile, latePosition, parseTrackName, readZip, sortImported } from "/player/core.mjs";
+import { formatTime, isAudioFile, latePosition, parseLimit, parseTrackName, readZip, sortImported } from "/player/core.mjs";
 
 const $ = (id) => document.getElementById(id);
 const audio = $("audio");
@@ -64,6 +64,11 @@ let confirmRemove = null;
 let audioCtx = null;
 let gain = null;
 let wakeLock = null;
+let fading = false; // fade out in progress
+let fadeTimer = null;
+let search = "";
+let timeLimit = null; // seconds; songs longer than this get a warning
+let durations = {}; // song id -> length in seconds (saved on the device for list songs)
 
 // The next song not yet played, after the one playing (or the one played last).
 function nextTrack() {
@@ -106,6 +111,10 @@ function render() {
   $("pauseBtn").textContent = fromList && !playing ? "Resume" : "Pause";
   $("stopBtn").disabled = !fromList;
   $("restartBtn").disabled = !fromList;
+  $("fadeBtn").disabled = !fromList || !playing || fading;
+  $("fadeBtn").textContent = fading ? "Fading…" : "Fade out";
+  $("usbFade").disabled = !playing || fading;
+  $("usbFade").textContent = fading ? "Fading…" : "Fade";
   const usbNow = locked && loaded.usb;
   $("usbNow").hidden = !usbNow;
   $("usbNow").className = `usb-now ${playing ? "playing" : "paused"}`;
@@ -117,9 +126,15 @@ function render() {
 
   renderUsb(locked, playing);
 
+  const q = search.trim().toLowerCase();
+  const shown = tracks.map((t, i) => [t, i]).filter(([t]) => !q || matches(t, q));
+  $("searchBar").hidden = tracks.length === 0;
+  $("searchCount").textContent = q ? `Showing ${shown.length} of ${tracks.length}` : "";
+  $("searchClear").hidden = !q;
+
   const list = $("list");
   list.replaceChildren(
-    ...tracks.map((t, i) => {
+    ...shown.map(([t, i]) => {
       const li = document.createElement("li");
       li.className = `row${t.id === current ? " current" : ""}${!locked && next && t.id === next.id ? " next" : ""}${t.played ? " played" : ""}`;
       const playBtn = button(t.id === current ? (playing ? "On air" : "Paused") : "Play", "play", () => play(t.id));
@@ -134,6 +149,7 @@ function render() {
       strong.textContent = t.performer;
       if (t.late) strong.append(tag("Late", "tag-late"));
       if (t.played) strong.append(tag("Played", "tag-played"));
+      const len = lengthTag(t);
       const small = document.createElement("small");
       small.textContent = t.detail || t.fileName;
       small.title = t.fileName;
@@ -152,7 +168,7 @@ function render() {
       remove.disabled = t.id === current;
       remove.setAttribute("aria-label", `Remove ${describe(t)}`);
       tools.append(up, down, mark, remove);
-      li.append(playBtn, item, who, tools);
+      li.append(playBtn, item, who, len, tools);
       return li;
     }),
   );
@@ -165,6 +181,23 @@ function button(text, className, onClick) {
   b.textContent = text;
   b.addEventListener("click", onClick);
   return b;
+}
+function matches(t, q) {
+  return [t.performer, t.detail, t.item, t.fileName].some((v) => v && String(v).toLowerCase().includes(q));
+}
+// Song length, in red with a warning when it's over the time limit.
+function lengthTag(t) {
+  const s = document.createElement("span");
+  const d = durations[t.id];
+  const over = timeLimit && d > timeLimit;
+  s.className = `len${over ? " over" : ""}`;
+  s.textContent = d ? formatTime(d) : "";
+  if (over) {
+    s.textContent = `⚠ ${formatTime(d)}`;
+    s.title = `Longer than the ${formatTime(timeLimit)} time limit`;
+    s.setAttribute("aria-label", `${formatTime(d)}, over the time limit`);
+  }
+  return s;
 }
 function tag(text, cls) {
   const s = document.createElement("span");
@@ -208,7 +241,9 @@ function renderUsb(locked, playing) {
       name.className = "usb-name";
       name.textContent = t.fileName.replace(/\.[a-z0-9]+$/i, "");
       name.title = t.path || t.fileName;
-      li.append(playBtn, name);
+      const len = lengthTag(t);
+      len.classList.add("len-small");
+      li.append(playBtn, name, len);
       return li;
     }),
   );
@@ -226,6 +261,7 @@ function chooseUsb(files) {
     .sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }));
   notice(`${usbFiles.length} ${usbFiles.length === 1 ? "song" : "songs"} ready in the USB / folder panel. They play straight from there and aren't added to the list.`, "ok");
   render();
+  measureDurations();
 }
 for (const id of ["usbFolderInput", "usbFilesInput"]) {
   $(id).addEventListener("change", (ev) => {
@@ -262,9 +298,44 @@ function setupAudio() {
 function applyVolume() {
   const v = Number($("volume").value);
   $("volumeValue").textContent = `${v}%`;
+  if (fading) return; // the fade sets the level; the new volume applies after it
   const level = (v / 100) ** 2; // feels even across the slider
-  if (gain) gain.gain.value = level;
-  else audio.volume = level;
+  if (gain) {
+    gain.gain.cancelScheduledValues(audioCtx.currentTime);
+    gain.gain.value = level;
+  } else audio.volume = level;
+}
+
+// Fade the song down over 3 seconds, then stop it.
+const FADE_SECONDS = 3;
+function fadeOut() {
+  if (!current || fading) return;
+  if (audio.paused) { stop(); return; }
+  fading = true;
+  if (gain) {
+    const now = audioCtx.currentTime;
+    gain.gain.cancelScheduledValues(now);
+    gain.gain.setValueAtTime(gain.gain.value, now);
+    gain.gain.linearRampToValueAtTime(0, now + FADE_SECONDS);
+    fadeTimer = setTimeout(stop, FADE_SECONDS * 1000);
+  } else {
+    const start = audio.volume;
+    const began = Date.now();
+    fadeTimer = setInterval(() => {
+      const left = 1 - (Date.now() - began) / (FADE_SECONDS * 1000);
+      if (left <= 0) stop();
+      else audio.volume = start * left;
+    }, 50);
+  }
+  render();
+}
+function cancelFade() {
+  if (!fading) return;
+  clearTimeout(fadeTimer);
+  clearInterval(fadeTimer);
+  fadeTimer = null;
+  fading = false;
+  applyVolume();
 }
 
 async function play(id) {
@@ -296,6 +367,7 @@ function stop() {
   finish(true);
 }
 function finish(markPlayed) {
+  cancelFade();
   const t = tracks.find((x) => x.id === current);
   if (t && markPlayed && !t.played) {
     t.played = true;
@@ -318,6 +390,7 @@ async function keepAwake(on) {
 
 async function togglePause() {
   if (!current) return;
+  cancelFade(); // pausing during a fade stops the fade and brings the volume back
   if (audio.paused) {
     if (audioCtx?.state === "suspended") await audioCtx.resume().catch(() => {});
     await audio.play().catch(() => {});
@@ -327,7 +400,7 @@ async function togglePause() {
 function restart() {
   if (current) { audio.currentTime = 0; updateTime(); }
 }
-for (const [id, fn] of [["pauseBtn", togglePause], ["usbPause", togglePause], ["stopBtn", stop], ["usbStop", stop], ["restartBtn", restart], ["usbRestart", restart]]) {
+for (const [id, fn] of [["pauseBtn", togglePause], ["usbPause", togglePause], ["stopBtn", stop], ["usbStop", stop], ["restartBtn", restart], ["usbRestart", restart], ["fadeBtn", fadeOut], ["usbFade", fadeOut]]) {
   $(id).addEventListener("click", fn);
 }
 $("playNextBtn").addEventListener("click", () => { const n = nextTrack(); if (n) play(n.id); });
@@ -443,6 +516,7 @@ $("loadInput").addEventListener("change", async (ev) => {
   busy(false);
   render();
   showStorage();
+  measureDurations();
 });
 
 $("lateBtn").addEventListener("click", () => $("lateInput").click());
@@ -475,6 +549,63 @@ $("lateInput").addEventListener("change", async (ev) => {
   busy(false);
   render();
   showStorage();
+  measureDurations();
+});
+
+// ---------- Song lengths, search and time limit ----------
+// Lengths are read one song at a time in the background, using a separate
+// player that never makes a sound, and kept on the device for list songs.
+let measuring = false;
+async function measureDurations() {
+  if (measuring) return;
+  measuring = true;
+  const probe = new Audio();
+  probe.preload = "metadata";
+  probe.muted = true;
+  let found = 0;
+  try {
+    for (;;) {
+      const t = [...tracks, ...usbFiles].find((x) => !(x.id in durations));
+      if (!t) break;
+      const url = URL.createObjectURL(t.blob);
+      const d = await new Promise((resolve) => {
+        const done = (v) => { clearTimeout(timer); probe.onloadedmetadata = probe.onerror = null; resolve(v); };
+        const timer = setTimeout(() => done(0), 15000);
+        probe.onloadedmetadata = () => done(Number.isFinite(probe.duration) ? probe.duration : 0);
+        probe.onerror = () => done(0);
+        probe.src = url;
+      });
+      URL.revokeObjectURL(url);
+      durations[t.id] = d;
+      if (++found % 10 === 0) render();
+    }
+  } finally {
+    probe.removeAttribute("src");
+    measuring = false;
+  }
+  if (found) {
+    // Keep only songs still in the list, so the saved lengths don't grow forever.
+    const keep = Object.fromEntries(tracks.filter((t) => t.id in durations).map((t) => [t.id, durations[t.id]]));
+    tx(["meta"], "readwrite", (x) => x.objectStore("meta").put(keep, "durations")).catch(() => {});
+    render();
+  }
+}
+
+$("search").addEventListener("input", () => { search = $("search").value; render(); });
+$("searchClear").addEventListener("click", () => { search = ""; $("search").value = ""; render(); $("search").focus(); });
+
+$("timeLimit").addEventListener("change", () => {
+  const v = parseLimit($("timeLimit").value);
+  if (v === undefined) {
+    notice("Type the time limit as minutes and seconds, like 3:00. Leave it empty for no limit.", "error");
+    return;
+  }
+  timeLimit = v;
+  $("timeLimit").value = v ? formatTime(v) : "";
+  try { localStorage.setItem("soundDeskTimeLimit", v ? String(v) : ""); } catch { /* ignore */ }
+  const over = tracks.filter((t) => durations[t.id] > v).length;
+  notice(v ? `Time limit ${formatTime(v)}: ${over} ${over === 1 ? "song is" : "songs are"} over it (marked ⚠).` : "Time limit turned off.", over ? "error" : "ok");
+  render();
 });
 
 // ---------- Footer: storage and offline ----------
@@ -503,6 +634,8 @@ window.addEventListener("beforeunload", (e) => { if (current) e.preventDefault()
   try {
     const v = localStorage.getItem("soundDeskVolume");
     if (v !== null) $("volume").value = v;
+    const lim = Number(localStorage.getItem("soundDeskTimeLimit"));
+    if (lim > 0) { timeLimit = lim; $("timeLimit").value = formatTime(lim); }
   } catch { /* ignore */ }
   applyVolume();
   showOnline();
@@ -513,8 +646,12 @@ window.addEventListener("beforeunload", (e) => { if (current) e.preventDefault()
   } catch {
     notice("This browser won't let the player save music (private browsing can do this). Open it in a normal window or as the installed app.", "error");
   }
+  try {
+    durations = (await tx(["meta"], "readonly", (t) => reqValue(t.objectStore("meta").get("durations")))) ?? {};
+  } catch { durations = {}; }
   render();
   showStorage();
+  measureDurations();
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/player/sw.js", { scope: "/player/" }).catch(() => {});
   }
