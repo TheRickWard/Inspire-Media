@@ -81,16 +81,6 @@ export function latePosition(list, track) {
   return at + 1;
 }
 
-/** Time limit typed by the sound desk: "3:00", "3.00", "3" (minutes) or "180" (seconds) -> seconds; blank = no limit, undefined = not understood. */
-export function parseLimit(text) {
-  const v = text.trim();
-  if (!v) return null;
-  let m = /^(\d{1,2})[:.](\d{1,2})$/.exec(v);
-  if (m) return Number(m[1]) * 60 + Number(m[2]);
-  m = /^(\d+)$/.exec(v);
-  if (m) return Number(m[1]) <= 20 ? Number(m[1]) * 60 : Number(m[1]);
-  return undefined;
-}
 /** "1:05" from seconds. */
 export function formatTime(seconds) {
   if (!Number.isFinite(seconds) || seconds < 0) return "–:––";

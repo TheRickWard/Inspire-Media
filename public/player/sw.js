@@ -1,7 +1,7 @@
 // Keeps the sound-desk player's own files on the device so it opens with no
 // internet. The music itself is stored separately (IndexedDB) by app.mjs.
 // Change VERSION whenever any player file changes, so devices pick up the update.
-const VERSION = "player-v6";
+const VERSION = "player-v7";
 const FILES = [
   "/player/index.html",
   "/player/app.mjs",

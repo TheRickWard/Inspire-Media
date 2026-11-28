@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { formatTime, isAudioFile, latePosition, parseLimit, parseTrackName, readZip, sortImported } from "../public/player/core.mjs";
+import { formatTime, isAudioFile, latePosition, parseTrackName, readZip, sortImported } from "../public/player/core.mjs";
 import { buildZip } from "../src/lib/zip.ts";
 import { playlistFileName } from "../src/lib/music.ts";
 
@@ -92,13 +92,4 @@ test("a file that isn't a zip gives a plain message", async () => {
   const dir = mkdtempSync(join(tmpdir(), "player-"));
   writeFileSync(join(dir, "x.zip"), "not a zip at all, just text");
   await assert.rejects(readZip(new Blob([readFileSync(join(dir, "x.zip"))])), /doesn't look like a zip/);
-});
-
-test("time limits can be typed several ways", () => {
-  assert.equal(parseLimit("3:00"), 180);
-  assert.equal(parseLimit("2.30"), 150);
-  assert.equal(parseLimit("4"), 240);
-  assert.equal(parseLimit("150"), 150);
-  assert.equal(parseLimit(""), null);
-  assert.equal(parseLimit("three"), undefined);
 });

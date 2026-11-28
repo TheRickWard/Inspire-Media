@@ -131,3 +131,7 @@ A USB song shows in its own small player (progress, Pause, Stop, Back to start) 
 ## 2026-11-28 – Sound Desk: scratching at the venue
 **Decision:** Each song in the player has a Scratch button. A scratched song is greyed out and crossed through, keeps its place in the running order, can't be played (its Play button is locked) and is skipped by "Play next". Unscratch puts it back. Scratches are kept on the device. Entries already scratched in the portal before the music is downloaded aren't in the zip at all.
 **Why:** Rick asked to grey out scratched items (28 Nov). Scratches mostly happen on the day, when the player is offline, so they are made in the player rather than read from the portal.
+
+## 2026-11-28 – Sound Desk: no time limit on tracks
+**Decision:** The player's "Time limit" setting and ⚠ warnings are removed. Song lengths are still shown.
+**Why:** Rick asked not to have a time limit on tracks (28 Nov). This replaces the time-limit part of "fade out, search, song lengths, played in blue".

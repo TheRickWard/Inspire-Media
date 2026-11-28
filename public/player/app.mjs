@@ -1,6 +1,6 @@
 // Sound-desk player screen. Music is kept on this device (IndexedDB) so the
 // player works with no internet; the page itself is kept by sw.js.
-import { formatTime, isAudioFile, latePosition, parseLimit, parseTrackName, readZip, sortImported } from "/player/core.mjs";
+import { formatTime, isAudioFile, latePosition, parseTrackName, readZip, sortImported } from "/player/core.mjs";
 
 const $ = (id) => document.getElementById(id);
 const audio = $("audio");
@@ -67,7 +67,6 @@ let wakeLock = null;
 let fading = false; // fade out in progress
 let fadeTimer = null;
 let search = "";
-let timeLimit = null; // seconds; songs longer than this get a warning
 let durations = {}; // song id -> length in seconds (saved on the device for list songs)
 
 // The next song not yet played, after the one playing (or the one played last).
@@ -190,18 +189,12 @@ function button(text, className, onClick) {
 function matches(t, q) {
   return [t.performer, t.detail, t.item, t.fileName].some((v) => v && String(v).toLowerCase().includes(q));
 }
-// Song length, in red with a warning when it's over the time limit.
+// Song length (shown once it has been read).
 function lengthTag(t) {
   const s = document.createElement("span");
   const d = durations[t.id];
-  const over = timeLimit && d > timeLimit;
-  s.className = `len${over ? " over" : ""}`;
+  s.className = "len";
   s.textContent = d ? formatTime(d) : "";
-  if (over) {
-    s.textContent = `⚠ ${formatTime(d)}`;
-    s.title = `Longer than the ${formatTime(timeLimit)} time limit`;
-    s.setAttribute("aria-label", `${formatTime(d)}, over the time limit`);
-  }
   return s;
 }
 function tag(text, cls) {
@@ -565,7 +558,7 @@ $("lateInput").addEventListener("change", async (ev) => {
   measureDurations();
 });
 
-// ---------- Song lengths, search and time limit ----------
+// ---------- Song lengths and search ----------
 // Lengths are read one song at a time in the background, using a separate
 // player that never makes a sound, and kept on the device for list songs.
 let measuring = false;
@@ -607,20 +600,6 @@ async function measureDurations() {
 $("search").addEventListener("input", () => { search = $("search").value; render(); });
 $("searchClear").addEventListener("click", () => { search = ""; $("search").value = ""; render(); $("search").focus(); });
 
-$("timeLimit").addEventListener("change", () => {
-  const v = parseLimit($("timeLimit").value);
-  if (v === undefined) {
-    notice("Type the time limit as minutes and seconds, like 3:00. Leave it empty for no limit.", "error");
-    return;
-  }
-  timeLimit = v;
-  $("timeLimit").value = v ? formatTime(v) : "";
-  try { localStorage.setItem("soundDeskTimeLimit", v ? String(v) : ""); } catch { /* ignore */ }
-  const over = tracks.filter((t) => durations[t.id] > v).length;
-  notice(v ? `Time limit ${formatTime(v)}: ${over} ${over === 1 ? "song is" : "songs are"} over it (marked ⚠).` : "Time limit turned off.", over ? "error" : "ok");
-  render();
-});
-
 // ---------- Footer: storage and offline ----------
 async function showStorage() {
   try {
@@ -647,8 +626,7 @@ window.addEventListener("beforeunload", (e) => { if (current) e.preventDefault()
   try {
     const v = localStorage.getItem("soundDeskVolume");
     if (v !== null) $("volume").value = v;
-    const lim = Number(localStorage.getItem("soundDeskTimeLimit"));
-    if (lim > 0) { timeLimit = lim; $("timeLimit").value = formatTime(lim); }
+    localStorage.removeItem("soundDeskTimeLimit"); // from an earlier version
   } catch { /* ignore */ }
   applyVolume();
   showOnline();
