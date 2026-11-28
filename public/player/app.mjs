@@ -55,7 +55,9 @@ async function savePositions() {
 // ---------- State ----------
 let tracks = []; // { id, pos, fileName, order, item, performer, blob, late, played }
 let listName = "";
-let current = null; // id of the loaded track (playing or paused)
+let current = null; // id of the loaded track (playing or paused), from the list or the USB panel
+let usbFiles = []; // music chosen in the USB / folder panel: played from there, never saved to the list
+let usbFolder = "";
 let lastFinished = null; // id of the song played most recently
 let confirmClear = false;
 let confirmRemove = null;
@@ -80,7 +82,7 @@ function notice(text, kind = "") {
 
 // ---------- Screen ----------
 function render() {
-  const loaded = current ? tracks.find((t) => t.id === current) : null;
+  const loaded = current ? findTrack(current) : null;
   const locked = !!loaded; // a song is playing or paused: no other song can start
   const playing = locked && !audio.paused;
   const next = nextTrack();
@@ -96,7 +98,7 @@ function render() {
 
   const now = document.querySelector(".now");
   now.className = `now ${playing ? "playing" : locked ? "paused" : ""}`;
-  $("nowLabel").textContent = playing ? "Now playing" : locked ? "Paused" : "Ready";
+  $("nowLabel").textContent = `${playing ? "Now playing" : locked ? "Paused" : "Ready"}${loaded?.usb ? " · from USB / folder" : ""}`;
   $("nowTitle").textContent = loaded ? describe(loaded) : tracks.length ? "Choose a song to play" : "Load music to begin";
   $("pauseBtn").disabled = !locked;
   $("pauseBtn").textContent = playing ? "Pause" : locked ? "Resume" : "Pause";
@@ -104,6 +106,8 @@ function render() {
   $("restartBtn").disabled = !locked;
   $("nextTitle").textContent = next ? describe(next) : tracks.length ? "End of the list" : "–";
   $("playNextBtn").disabled = locked || !next;
+
+  renderUsb(locked, playing);
 
   const list = $("list");
   list.replaceChildren(
@@ -168,6 +172,66 @@ function updateTime() {
   $("progressBar").style.width = current && d > 0 ? `${Math.min(100, (c / d) * 100)}%` : "0";
 }
 
+// ---------- USB / folder panel ----------
+// Plays music straight from a USB stick or folder. Nothing is copied to the
+// device or added to the list; the files are only remembered until the page closes.
+function findTrack(id) {
+  return tracks.find((t) => t.id === id) ?? usbFiles.find((t) => t.id === id) ?? null;
+}
+function renderUsb(locked, playing) {
+  $("usbFolder").textContent = usbFiles.length
+    ? `${usbFolder ? `${usbFolder} · ` : ""}${usbFiles.length} ${usbFiles.length === 1 ? "song" : "songs"}`
+    : "Nothing chosen yet";
+  $("usbClear").hidden = usbFiles.length === 0;
+  $("usbClear").disabled = usbFiles.some((t) => t.id === current);
+  $("usbList").replaceChildren(
+    ...usbFiles.map((t) => {
+      const li = document.createElement("li");
+      li.className = `usb-row${t.id === current ? " current" : ""}`;
+      const playBtn = button(t.id === current ? (playing ? "On air" : "Paused") : "Play", "play play-small", () => play(t.id));
+      playBtn.disabled = locked;
+      playBtn.setAttribute("aria-label", `Play ${t.fileName}`);
+      const name = document.createElement("span");
+      name.className = "usb-name";
+      name.textContent = t.fileName.replace(/\.[a-z0-9]+$/i, "");
+      name.title = t.path || t.fileName;
+      li.append(playBtn, name);
+      return li;
+    }),
+  );
+}
+function chooseUsb(files) {
+  const music = files.filter((f) => isAudioFile(f.webkitRelativePath || f.name));
+  if (!music.length) {
+    notice("No music files (MP3, M4A, WAV or AAC) were found in what you chose.", "error");
+    return;
+  }
+  const stamp = Date.now().toString(36);
+  usbFolder = (music[0].webkitRelativePath || "").split("/")[0];
+  usbFiles = music
+    .map((f, i) => ({ id: `usb-${stamp}-${i}`, fileName: f.name, path: f.webkitRelativePath || f.name, blob: f, ...parseTrackName(f.name), usb: true }))
+    .sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }));
+  notice(`${usbFiles.length} ${usbFiles.length === 1 ? "song" : "songs"} ready in the USB / folder panel. They play straight from there and aren't added to the list.`, "ok");
+  render();
+}
+for (const id of ["usbFolderInput", "usbFilesInput"]) {
+  $(id).addEventListener("change", (ev) => {
+    const files = [...ev.target.files];
+    ev.target.value = "";
+    if (files.length) chooseUsb(files);
+  });
+}
+$("usbFolderBtn").addEventListener("click", () => $("usbFolderInput").click());
+$("usbFilesBtn").addEventListener("click", () => $("usbFilesInput").click());
+$("usbClear").addEventListener("click", () => {
+  if (usbFiles.some((t) => t.id === current)) return;
+  usbFiles = [];
+  usbFolder = "";
+  render();
+});
+// Folder choosing isn't available on every device (e.g. some iPads): offer files only there.
+if (!("webkitdirectory" in document.createElement("input"))) $("usbFolderBtn").hidden = true;
+
 // ---------- Playing ----------
 function setupAudio() {
   // Volume goes through Web Audio, because iPads ignore a player's own volume setting.
@@ -192,7 +256,7 @@ function applyVolume() {
 
 async function play(id) {
   if (current) return; // locked while a song is loaded
-  const t = tracks.find((x) => x.id === id);
+  const t = findTrack(id);
   if (!t) return;
   setupAudio();
   if (audioCtx?.state === "suspended") await audioCtx.resume().catch(() => {});
@@ -224,7 +288,7 @@ function finish(markPlayed) {
     t.played = true;
     tx(["tracks"], "readwrite", (x) => x.objectStore("tracks").put(t)).catch(() => {});
   }
-  lastFinished = current;
+  if (t) lastFinished = current; // a USB song doesn't move "Up next"
   current = null;
   if (audio.src) URL.revokeObjectURL(audio.src);
   audio.removeAttribute("src");
