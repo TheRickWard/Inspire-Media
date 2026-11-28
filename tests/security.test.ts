@@ -438,3 +438,43 @@ test("one cart, several competitions: one payment pays every cart, each with its
 
   await staff.from("events").update({ status: "draft", entries_override: "auto" }).eq("id", DRAFT_EVENT);
 });
+
+test("critiques: organisers see them; competitors only their own, once released (event or session)", async () => {
+  const parent = await signIn("parent@example.test");
+  const staff = await signIn("staff@inspire.test");
+  const harbour = await signIn("organiser@harbourdance.test");
+  const server = createClient(URL, SECRET, { auth: { persistSession: false } });
+
+  const { data: mine } = await parent.from("entries").select("id, section_id").eq("entered_by", "44444444-4444-4444-8444-444444444444").eq("event_id", MAIN_EVENT).limit(1).single();
+  const { data: other } = await staff.from("entries").select("id").eq("event_id", MAIN_EVENT).is("entered_by", null).limit(1).single();
+  const row = (entry: string, n: number) => ({ entry_id: entry, event_id: MAIN_EVENT, storage_path: `${MAIN_EVENT}/${entry}/c${n}.mp3`, file_name: `c${n}.mp3`, size_bytes: 100, content_type: "audio/mpeg" });
+
+  // People can't add critiques directly; the server can.
+  assert.ok((await staff.from("entry_critiques").insert(row(mine!.id, 0))).error);
+  assert.equal((await server.from("entry_critiques").insert([row(mine!.id, 1), row(other!.id, 2)])).error, null);
+
+  // Before release: organiser sees both, the competitor sees none, other organisers none.
+  assert.equal((await staff.from("entry_critiques").select("id").eq("event_id", MAIN_EVENT)).data?.length, 2);
+  assert.deepEqual((await parent.from("entry_critiques").select("id")).data, []);
+  assert.deepEqual((await harbour.from("entry_critiques").select("id")).data, []);
+
+  // Only organisers can release, and the competitor then sees only their own.
+  const { data: hacked } = await parent.from("events").update({ critiques_released_at: new Date().toISOString() }).eq("id", MAIN_EVENT).select("id");
+  assert.deepEqual(hacked, []);
+  await staff.from("events").update({ critiques_released_at: new Date().toISOString() }).eq("id", MAIN_EVENT);
+  assert.deepEqual((await parent.from("entry_critiques").select("file_name")).data, [{ file_name: "c1.mp3" }]);
+  await staff.from("events").update({ critiques_released_at: null }).eq("id", MAIN_EVENT);
+  assert.deepEqual((await parent.from("entry_critiques").select("id")).data, []);
+
+  // Releasing just the session that the entry is in also works.
+  const { data: section } = await staff.from("sections").select("session_id").eq("id", mine!.section_id).single();
+  if (section?.session_id) {
+    await staff.from("event_sessions").update({ critiques_released_at: new Date().toISOString() }).eq("id", section.session_id);
+    assert.equal((await parent.from("entry_critiques").select("id")).data?.length, 1);
+    await staff.from("event_sessions").update({ critiques_released_at: null }).eq("id", section.session_id);
+  }
+
+  const { data: bucket } = await server.storage.getBucket("critiques");
+  assert.equal(bucket?.public, false);
+  await server.from("entry_critiques").delete().eq("event_id", MAIN_EVENT);
+});

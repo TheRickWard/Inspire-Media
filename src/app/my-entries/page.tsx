@@ -5,6 +5,7 @@ import { createSupabase } from "@/lib/supabase/server";
 import { formatDate, formatDateRange, formatDateTime, todayInSydney } from "@/lib/format";
 import { formatFileSize } from "@/lib/music";
 import { musicPlayLinks } from "@/app/music/actions";
+import { critiqueLinks } from "@/app/critiques/actions";
 import { MusicUpload } from "@/components/MusicUpload";
 import { card, h1, h2, link, muted } from "@/components/ui";
 
@@ -14,13 +15,17 @@ async function MyEntries() {
   const { data: entries } = await supabase
     .from("entries")
     .select(
-      "id, item_number, performer_name, studio_name, status, position, events(id, name, starts_on, ends_on, music_due_on), sections(code, name), entry_music(file_name, size_bytes, uploaded_at)",
+      "id, item_number, performer_name, studio_name, status, position, events(id, name, starts_on, ends_on, music_due_on, critiques_released_at), sections(code, name), entry_music(file_name, size_bytes, uploaded_at), entry_critiques(id, adjudicator, file_name)",
     )
     .eq("entered_by", user.id)
     .order("position");
 
   const list = entries ?? [];
-  const links = await musicPlayLinks(list.filter((e) => e.entry_music).map((e) => e.id));
+  const [links, critique] = await Promise.all([
+    musicPlayLinks(list.filter((e) => e.entry_music).map((e) => e.id)),
+    // Only critiques the organiser has released come back (security rules).
+    critiqueLinks(list.flatMap((e) => e.entry_critiques.map((c) => c.id))),
+  ]);
   const today = todayInSydney();
 
   // Group by event, soonest event first.
@@ -37,7 +42,7 @@ async function MyEntries() {
     <div className="space-y-6">
       <div>
         <p className={muted}><Link href="/dashboard" className={link}>Dashboard</Link> /</p>
-        <h1 className={h1}>My entries and music</h1>
+        <h1 className={h1}>My entries, music and critiques</h1>
         <p className="text-sm text-slate-600">Upload one music file per entry: MP3, M4A or WAV, up to 20 MB. Press play afterwards to check it&apos;s the right track.</p>
       </div>
 
@@ -60,6 +65,9 @@ async function MyEntries() {
                   : `${event.music_due_on ? `Music due ${formatDate(event.music_due_on)}.` : "Please upload music as soon as you can."} ${missing ? `${missing} still to upload.` : "All music uploaded."}`}
               </p>
             </div>
+            {!event.critiques_released_at && !rows.some((r) => r.entry_critiques.length > 0) && (
+              <p className={muted}>Critiques from the adjudicators will appear here once the organiser releases them.</p>
+            )}
             <ul className="divide-y divide-slate-100">
               {rows.map((r) => (
                 <li key={r.id} className="space-y-2 py-3 text-sm">
@@ -84,6 +92,20 @@ async function MyEntries() {
                     <p className="text-xs font-medium text-amber-700">No music yet</p>
                   )}
                   {!closed && r.status === "entered" && <MusicUpload entryId={r.id} hasMusic={!!r.entry_music} />}
+                  {r.entry_critiques.length > 0 && (
+                    <div className="space-y-2 rounded-md bg-brand-purple/5 p-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-brand-purple">Adjudicator&apos;s critique</p>
+                      {r.entry_critiques.map((c) =>
+                        critique[c.id] ? (
+                          <div key={c.id} className="space-y-1">
+                            {c.adjudicator && <p className="text-xs text-slate-600">{c.adjudicator}</p>}
+                            <audio controls preload="none" src={critique[c.id].play} className="h-9 w-full max-w-md" />
+                            <a href={critique[c.id].download} className={`${link} text-xs font-medium`}>Download</a>
+                          </div>
+                        ) : null,
+                      )}
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>

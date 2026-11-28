@@ -21,8 +21,10 @@
 - [ ] Check a track's length and warn if it's over the section's time limit
 
 ### Portal stage 4 – Critiques and reports
-- [ ] Upload critiques and file them in each competitor's folder
-- [ ] Upload a missing critique directly to a competitor
+- [x] Upload critiques and file them in each competitor's folder (Critiques tab: bulk upload matched by item number in the file name)
+- [x] Upload a missing critique directly to a competitor ("Add critique" on any entry)
+- [x] Release button: whole competition or one session at a time; competitors play/download under My entries
+- [ ] Rick to run `20261128010000_voice_critiques.sql` in the Supabase SQL Editor
 - [ ] Downloadable reports and a printable published program
 
 ### Venue tools
