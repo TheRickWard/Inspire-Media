@@ -37,3 +37,23 @@ export function itemNumberFromFileName(fileName: string): string | null {
   const leading = /^\s*0*(\d+[a-z]?)(?![a-z0-9])/i.exec(base);
   return leading ? normaliseItemNumber(leading[1]) : null;
 }
+
+/** Name a downloaded critique so it makes sense on its own: "Item 12 - Jane Jones - Jazz Solo 10 & Under - Ms Smith.mp3". */
+export function critiqueDownloadName(
+  itemNumber: string | null,
+  performer: string,
+  section: string | null,
+  adjudicator: string | null,
+  ext: string,
+): string {
+  // "&" and "%" are swapped out because storage download links mangle them.
+  const clean = (s: string) =>
+    s.replace(/&/g, " and ").replace(/%/g, " percent ").replace(/[\\/:*?"<>|\u0000-\u001f]+/g, " ").replace(/\s+/g, " ").trim();
+  const parts = [
+    itemNumber ? `Item ${clean(itemNumber)}` : "",
+    clean(performer).slice(0, 80) || "Performer",
+    clean(section ?? "").slice(0, 80),
+    clean(adjudicator ?? "").slice(0, 40),
+  ].filter(Boolean);
+  return `${parts.join(" - ")}.${ext}`;
+}

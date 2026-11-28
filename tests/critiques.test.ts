@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { critiqueFileProblem, itemNumberFromFileName, normaliseItemNumber } from "../src/lib/critiques.ts";
+import { critiqueDownloadName, critiqueFileProblem, itemNumberFromFileName, normaliseItemNumber } from "../src/lib/critiques.ts";
 
 test("recordings are matched to item numbers from their file names", () => {
   assert.equal(itemNumberFromFileName("12A.mp3"), "12A");
@@ -24,4 +24,12 @@ test("only audio recordings up to 20 MB are accepted", () => {
   assert.equal(critiqueFileProblem("a.M4A", 1000), null);
   assert.match(critiqueFileProblem("a.pdf", 1000)!, /MP3, M4A, WAV or WebM/);
   assert.match(critiqueFileProblem("a.mp3", 21 * 1024 * 1024)!, /over 20 MB/);
+});
+
+test("downloaded critiques are named with item, performer, section and adjudicator", () => {
+  assert.equal(
+    critiqueDownloadName("12A", "Jane Jones", "Jazz Solo 10 Years & Under", "Ms Smith", "mp3"),
+    "Item 12A - Jane Jones - Jazz Solo 10 Years and Under - Ms Smith.mp3",
+  );
+  assert.equal(critiqueDownloadName(null, "Lily/Rose: Duo", "Tap", "", "wav"), "Lily Rose Duo - Tap.wav");
 });

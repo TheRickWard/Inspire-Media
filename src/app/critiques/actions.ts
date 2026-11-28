@@ -5,7 +5,7 @@ import { refresh } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { createSupabase } from "@/lib/supabase/server";
 import { createAdminSupabase } from "@/lib/supabase/admin";
-import { critiqueContentType, critiqueExtension, critiqueFileProblem } from "@/lib/critiques";
+import { critiqueContentType, critiqueDownloadName, critiqueExtension, critiqueFileProblem } from "@/lib/critiques";
 import { done, fail, type FormState } from "@/lib/form";
 
 const BUCKET = "critiques";
@@ -109,7 +109,8 @@ export async function critiqueLinks(critiqueIds: string[]): Promise<Record<strin
   if (critiqueIds.length === 0) return {};
   const supabase = await createSupabase();
   // The security rules only return released critiques for your own entries, or any for events you organise.
-  const { data: rows } = await supabase.from("entry_critiques").select("id, storage_path, file_name").in("id", critiqueIds);
+  const { data: rows } = await supabase.from("entry_critiques").select("id, storage_path, file_name, adjudicator, entries(item_number, performer_name, sections(name))")
+    .in("id", critiqueIds);
   if (!rows?.length) return {};
   const storage = createAdminSupabase().storage.from(BUCKET);
   const { data: play } = await storage.createSignedUrls(rows.map((r) => r.storage_path), 60 * 60);
@@ -117,7 +118,15 @@ export async function critiqueLinks(critiqueIds: string[]): Promise<Record<strin
   const out: Record<string, CritiqueLink> = {};
   await Promise.all(
     rows.map(async (r) => {
-      const { data: dl } = await storage.createSignedUrl(r.storage_path, 60 * 60, { download: r.file_name });
+      const { data: dl } = await storage.createSignedUrl(r.storage_path, 60 * 60, {
+        download: critiqueDownloadName(
+          r.entries?.item_number ?? null,
+          r.entries?.performer_name ?? "",
+          r.entries?.sections?.name ?? null,
+          r.adjudicator,
+          critiqueExtension(r.storage_path) ?? "mp3",
+        ),
+      });
       const p = playByPath.get(r.storage_path);
       if (p && dl?.signedUrl) out[r.id] = { id: r.id, play: p, download: dl.signedUrl };
     }),
