@@ -52,7 +52,8 @@
       <div class="usb-controls">
         <button type="button" id="usbPause" class="mini">Pause</button>
         <button type="button" id="usbStop" class="mini mini-stop">Stop</button>
-        <button type="button" id="usbRestart" class="mini mini-quiet" aria-label="Back to start">⏮ Start</button>
+        <button type="button" id="usbFade" class="mini mini-fade">Fade</button>
+        <button type="button" id="usbRestart" class="mini mini-quiet" aria-label="Back to start">⏮</button>
       </div>
     </div>
     <ol id="usbList" class="usb-list"></ol>
@@ -68,9 +69,14 @@
         <button type="button" id="pauseBtn" class="big" disabled>Pause</button>
         <button type="button" id="stopBtn" class="big big-stop" disabled>Stop</button>
         <button type="button" id="restartBtn" class="big big-quiet" disabled>Back to start</button>
+        <button type="button" id="fadeBtn" class="big big-fade" disabled>Fade out</button>
       </div>
     </div>
     <div class="side">
+      <label class="limit">
+        <span>Time limit</span>
+        <input type="text" id="timeLimit" inputmode="decimal" placeholder="Off (e.g. 3:00)" autocomplete="off">
+      </label>
       <label class="volume">
         <span>Volume <strong id="volumeValue">80%</strong></span>
         <input type="range" id="volume" min="0" max="100" step="1" value="80">
@@ -84,6 +90,11 @@
   </section>
 
   <main>
+    <div id="searchBar" class="search" hidden>
+      <input type="search" id="search" placeholder="Search name, section or item number" autocomplete="off" aria-label="Search the list">
+      <button type="button" id="searchClear" class="btn btn-quiet" hidden>Clear</button>
+      <span id="searchCount" class="muted"></span>
+    </div>
     <div id="empty" class="empty">
       <h2>Load the music for your event</h2>
       <ol>
