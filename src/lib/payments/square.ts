@@ -94,3 +94,39 @@ export async function verifySquarePayment(
   if (!first) return { paid: false, reason: "Square hasn't completed the payment yet." };
   return { paid: true, reference: squareOrderId, paymentId: first.id, amountCents: total, receiptUrl: first.receipt_url ?? "" };
 }
+
+export type RefundResult = { ok: true; refundId: string; pending: boolean } | { ok: false; error: string };
+
+/**
+ * Send money back to the card used for this Square order. Safe to repeat with
+ * the same key (Square won't refund twice). Square may take a few days to
+ * finish a card refund; "pending" means Square has accepted it.
+ */
+export async function refundSquarePayment(
+  s: SquareSettings,
+  squareOrderId: string,
+  amountCents: number,
+  key: string,
+  reason: string,
+  fetchFn: FetchFn = fetch,
+): Promise<RefundResult> {
+  const { order } = await call<{ order: SquareOrder }>(s, `/v2/orders/${encodeURIComponent(squareOrderId)}`, { method: "GET" }, fetchFn);
+  const paymentId = (order.tenders ?? []).map((t) => t.payment_id ?? t.id)[0];
+  if (!paymentId) return { ok: false, error: "Square has no payment for this receipt." };
+  const { refund } = await call<{ refund: { id: string; status: string } }>(
+    s,
+    "/v2/refunds",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        idempotency_key: key,
+        payment_id: paymentId,
+        amount_money: { amount: amountCents, currency: "AUD" },
+        reason: reason.slice(0, 192) || undefined,
+      }),
+    },
+    fetchFn,
+  );
+  if (refund.status === "REJECTED" || refund.status === "FAILED") return { ok: false, error: `Square ${refund.status.toLowerCase()} the refund.` };
+  return { ok: true, refundId: refund.id, pending: refund.status !== "COMPLETED" };
+}

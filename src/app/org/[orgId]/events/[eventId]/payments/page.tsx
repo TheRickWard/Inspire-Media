@@ -30,6 +30,16 @@ async function Payments({ params }: { params: Promise<{ orgId: string; eventId: 
     .eq("event_id", eventId)
     .neq("status", "cancelled");
 
+  const { data: refundRows } = await supabase.from("refunds").select("order_id, amount_cents, status").eq("event_id", eventId).neq("status", "failed");
+  const refundedBy = new Map<string, { done: number; pending: number }>();
+  for (const r of refundRows ?? []) {
+    const t = refundedBy.get(r.order_id) ?? { done: 0, pending: 0 };
+    if (r.status === "refunded") t.done += r.amount_cents;
+    else t.pending += r.amount_cents;
+    refundedBy.set(r.order_id, t);
+  }
+  const refundedTotal = [...refundedBy.values()].reduce((n, t) => n + t.done, 0);
+
   const paid = (orders ?? []).filter((o) => o.status === "paid").sort((a, b) => (b.paid_at ?? "").localeCompare(a.paid_at ?? ""));
   const unpaid = (orders ?? []).filter((o) => o.status === "open" && o.order_items.length > 0).sort((a, b) => b.created_at.localeCompare(a.created_at));
   const contacts = await contactsFor([...new Set([...paid, ...unpaid].map((o) => o.user_id))]);
@@ -44,7 +54,7 @@ async function Payments({ params }: { params: Promise<{ orgId: string; eventId: 
       <EventNav orgId={orgId} orgName={org.name} event={event} current="payments" />
 
       <div className="grid gap-4 sm:grid-cols-4">
-        <div className={card}><p className={muted}>Received</p><p className="text-2xl font-bold">{formatMoney(received)}</p></div>
+        <div className={card}><p className={muted}>Received</p><p className="text-2xl font-bold">{formatMoney(received - refundedTotal)}</p>{refundedTotal > 0 && <p className={muted}>{formatMoney(received)} paid, {formatMoney(refundedTotal)} refunded</p>}</div>
         <div className={card}><p className={muted}>Paid carts</p><p className="text-2xl font-bold">{paid.length}</p><p className={muted}>{paidEntries} {paidEntries === 1 ? "entry" : "entries"}</p></div>
         <div className={card}><p className={muted}>By method</p><p className="text-sm font-medium">Square {formatMoney(byProvider("square"))}</p><p className="text-sm font-medium">PayPal {formatMoney(byProvider("paypal"))}</p></div>
         <div className={card}><p className={muted}>Unpaid carts</p><p className="text-2xl font-bold">{unpaid.length}</p><p className={muted}>{formatMoney(waiting)} not yet paid</p></div>
@@ -53,7 +63,7 @@ async function Payments({ params }: { params: Promise<{ orgId: string; eventId: 
       <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="p-5 pb-2">
           <h2 className={h2}>Paid</h2>
-          <p className={muted}>These entries are in your program. Click a receipt number to see what was entered.</p>
+          <p className={muted}>These entries are in your program. Click a receipt number to see what was entered, or to give a refund.</p>
         </div>
         {paid.length === 0 ? (
           <p className={`${muted} px-5 pb-5`}>No payments yet.</p>
@@ -82,7 +92,11 @@ async function Payments({ params }: { params: Promise<{ orgId: string; eventId: 
                       {providerName[o.payment_provider ?? ""] ?? o.payment_provider}
                       <span className="block break-all text-xs text-slate-500">{o.payment_reference}</span>
                     </td>
-                    <td className="px-5 py-2 text-right align-top font-medium">{formatMoney(o.paid_amount_cents ?? o.total_cents)}</td>
+                    <td className="px-5 py-2 text-right align-top font-medium">
+                      {formatMoney(o.paid_amount_cents ?? o.total_cents)}
+                      {refundedBy.get(o.id)?.done ? <span className="block text-xs font-normal text-red-700">−{formatMoney(refundedBy.get(o.id)!.done)} refunded</span> : null}
+                      {refundedBy.get(o.id)?.pending ? <span className="block text-xs font-normal text-amber-700">Refund waiting</span> : null}
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -14,7 +14,7 @@ async function Reports({ params }: { params: Promise<{ orgId: string; eventId: s
   const live = data.rows.filter((r) => !r.scratched);
   const studios = studioTotals(data.rows);
   const sections = sectionTotals(data.rows);
-  const received = data.payments.reduce((n, p) => n + p.amountCents, 0);
+  const received = data.payments.reduce((n, p) => n + p.amountCents - p.refundedCents, 0);
   const noMusic = live.filter((r) => !r.music).length;
   const noCritique = live.filter((r) => r.critiques === 0).length;
   const base = `/org/${orgId}/events/${eventId}/reports`;
@@ -26,7 +26,7 @@ async function Reports({ params }: { params: Promise<{ orgId: string; eventId: s
       <div className="grid gap-4 sm:grid-cols-4">
         <div className={card}><p className={muted}>Entries</p><p className="text-2xl font-bold">{live.length}</p><p className={muted}>{data.rows.length - live.length} scratched</p></div>
         <div className={card}><p className={muted}>Studios</p><p className="text-2xl font-bold">{studios.filter((s) => s.entries > 0).length}</p></div>
-        <div className={card}><p className={muted}>Received online</p><p className="text-2xl font-bold">{formatMoney(received)}</p><p className={muted}>{data.payments.length} {data.payments.length === 1 ? "payment" : "payments"}</p></div>
+        <div className={card}><p className={muted}>Received online (after refunds)</p><p className="text-2xl font-bold">{formatMoney(received)}</p><p className={muted}>{data.payments.length} {data.payments.length === 1 ? "payment" : "payments"}</p></div>
         <div className={card}><p className={muted}>Still missing</p><p className="text-sm font-medium">{noMusic} without music</p><p className="text-sm font-medium">{noCritique} without a critique</p></div>
       </div>
 

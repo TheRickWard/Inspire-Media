@@ -132,3 +132,36 @@ export async function capturePayPalPayment(
   }
   return result;
 }
+
+export type RefundResult = { ok: true; refundId: string; pending: boolean } | { ok: false; error: string };
+
+/**
+ * Send money back for a PayPal order (to the payer's PayPal account or card).
+ * Safe to repeat with the same key (PayPal won't refund twice).
+ */
+export async function refundPayPalPayment(
+  s: PayPalSettings,
+  paypalOrderId: string,
+  amountCents: number,
+  key: string,
+  reason: string,
+  fetchFn: FetchFn = fetch,
+): Promise<RefundResult> {
+  const lookup = await call<PayPalOrder>(s, `/v2/checkout/orders/${encodeURIComponent(paypalOrderId)}`, { method: "GET" }, fetchFn);
+  if (!lookup.ok) return { ok: false, error: `PayPal: ${describe(lookup.body)}` };
+  const capture = (lookup.body.purchase_units?.[0]?.payments?.captures ?? []).find((c) => c.status === "COMPLETED" || c.status === "PARTIALLY_REFUNDED");
+  if (!capture) return { ok: false, error: "PayPal has no completed payment for this receipt." };
+  const res = await call<{ id: string; status: string }>(
+    s,
+    `/v2/payments/captures/${encodeURIComponent(capture.id)}/refund`,
+    {
+      method: "POST",
+      requestId: `refund-${key}`,
+      body: JSON.stringify({ amount: { currency_code: "AUD", value: toDollars(amountCents) }, note_to_payer: reason.slice(0, 255) || undefined }),
+    },
+    fetchFn,
+  );
+  if (!res.ok) return { ok: false, error: `PayPal: ${describe(res.body)}` };
+  if (res.body.status === "CANCELLED" || res.body.status === "FAILED") return { ok: false, error: `PayPal ${res.body.status.toLowerCase()} the refund.` };
+  return { ok: true, refundId: res.body.id, pending: res.body.status !== "COMPLETED" };
+}
