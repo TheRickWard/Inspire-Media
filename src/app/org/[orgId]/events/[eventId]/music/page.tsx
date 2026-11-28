@@ -58,7 +58,7 @@ async function Music({ params }: { params: Promise<{ orgId: string; eventId: str
       <section className={`${card} space-y-3`}>
         <h2 className={h2}>Download for the sound desk</h2>
         <p className="text-sm text-slate-600">
-          One zip file, in running order. Files are named like <span className="font-mono text-xs">003 - Item 12A - Jane Jones.mp3</span>. Number the program first so item numbers are included. Large events can take a few minutes; keep this page open until it saves.
+          One zip file, in running order. Files are named competitor, section, then music title (if there is one), with the running-order number first so they sort like the program: <span className="font-mono text-xs">003 - Jane Jones - Junior Jazz Solo - Shake It Off.mp3</span>. Large events can take a few minutes; keep this page open until it saves.
         </p>
         <MusicDownload eventId={eventId} sessionId={null} label="Download all music" zipName={zipName(event.name, "")} className={button} />
         {sessionsWithMusic.length > 1 && (

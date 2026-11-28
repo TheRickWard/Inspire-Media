@@ -104,7 +104,7 @@ export async function musicDownloadList(
 
   let query = supabase
     .from("entries")
-    .select("id, item_number, performer_name, position, sections!inner(session_id), entry_music(storage_path)")
+    .select("id, performer_name, routine_title, position, sections!inner(session_id, name), entry_music(storage_path)")
     .eq("event_id", eventId)
     .eq("status", "entered")
     .order("position");
@@ -124,7 +124,7 @@ export async function musicDownloadList(
 
   const files = withMusic.map((e) => {
     const path = e.entry_music!.storage_path;
-    return { name: playlistFileName(e.order, e.item_number, e.performer_name, musicExtension(path) ?? "mp3"), url: byPath.get(path) ?? "" };
+    return { name: playlistFileName(e.order, e.performer_name, e.sections.name, e.routine_title, musicExtension(path) ?? "mp3"), url: byPath.get(path) ?? "" };
   });
   return { ok: true, files: files.filter((f) => f.url), missing };
 }

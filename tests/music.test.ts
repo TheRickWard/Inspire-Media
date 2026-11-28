@@ -20,8 +20,9 @@ test("only MP3, M4A and WAV files up to 20 MB are accepted", () => {
 });
 
 test("sound-desk file names sort in running order and are safe", () => {
-  assert.equal(playlistFileName(3, "12A", "Jane Jones", "mp3"), "003 - Item 12A - Jane Jones.mp3");
-  assert.equal(playlistFileName(12, null, "A/B: \"Crew\"", "wav"), "012 - No item number - A B Crew.wav");
+  assert.equal(playlistFileName(3, "Jane Jones", "Junior Jazz Solo", "Shake It Off", "mp3"), "003 - Jane Jones - Junior Jazz Solo - Shake It Off.mp3");
+  assert.equal(playlistFileName(12, "A/B: \"Crew\"", "Troupe 12 & Under", "", "wav"), "012 - A B Crew - Troupe 12 & Under.wav");
+  assert.equal(playlistFileName(7, "Zoë - Smith", "Solo - Open", null, "m4a"), "007 - Zoë – Smith - Solo – Open.m4a");
 });
 
 test("crc32 matches the standard check value", () => {
