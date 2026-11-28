@@ -96,14 +96,22 @@ function render() {
   $("clearBtn").textContent = confirmClear ? `Yes, remove all ${tracks.length}` : "Clear list";
   $("clearBtn").className = confirmClear ? "btn btn-danger" : "btn btn-quiet";
 
+  // The big controls are for the list; a USB song has its own small player in the left panel.
+  const fromList = locked && !loaded.usb;
   const now = document.querySelector(".now");
-  now.className = `now ${playing ? "playing" : locked ? "paused" : ""}`;
-  $("nowLabel").textContent = `${playing ? "Now playing" : locked ? "Paused" : "Ready"}${loaded?.usb ? " · from USB / folder" : ""}`;
-  $("nowTitle").textContent = loaded ? describe(loaded) : tracks.length ? "Choose a song to play" : "Load music to begin";
-  $("pauseBtn").disabled = !locked;
-  $("pauseBtn").textContent = playing ? "Pause" : locked ? "Resume" : "Pause";
-  $("stopBtn").disabled = !locked;
-  $("restartBtn").disabled = !locked;
+  now.className = `now ${fromList ? (playing ? "playing" : "paused") : ""}`;
+  $("nowLabel").textContent = fromList ? (playing ? "Now playing" : "Paused") : locked ? "USB / folder song loaded" : "Ready";
+  $("nowTitle").textContent = fromList ? describe(loaded) : locked ? "Use the small player in the USB / folder panel" : tracks.length ? "Choose a song to play" : "Load music to begin";
+  $("pauseBtn").disabled = !fromList;
+  $("pauseBtn").textContent = fromList && !playing ? "Resume" : "Pause";
+  $("stopBtn").disabled = !fromList;
+  $("restartBtn").disabled = !fromList;
+  const usbNow = locked && loaded.usb;
+  $("usbNow").hidden = !usbNow;
+  $("usbNow").className = `usb-now ${playing ? "playing" : "paused"}`;
+  $("usbNowLabel").textContent = playing ? "Now playing" : "Paused";
+  $("usbNowTitle").textContent = usbNow ? loaded.fileName.replace(/\.[a-z0-9]+$/i, "") : "";
+  $("usbPause").textContent = playing ? "Pause" : "Resume";
   $("nextTitle").textContent = next ? describe(next) : tracks.length ? "End of the list" : "–";
   $("playNextBtn").disabled = locked || !next;
 
@@ -166,10 +174,15 @@ function tag(text, cls) {
 }
 function updateTime() {
   const d = audio.duration;
-  const c = current ? audio.currentTime : 0;
-  $("elapsed").textContent = formatTime(c);
-  $("remaining").textContent = current && Number.isFinite(d) ? `−${formatTime(d - c)}` : "";
-  $("progressBar").style.width = current && d > 0 ? `${Math.min(100, (c / d) * 100)}%` : "0";
+  const loaded = current ? findTrack(current) : null;
+  const show = (on, el, rem, bar) => {
+    const c = on ? audio.currentTime : 0;
+    $(el).textContent = formatTime(c);
+    $(rem).textContent = on && Number.isFinite(d) ? `−${formatTime(d - c)}` : "";
+    $(bar).style.width = on && d > 0 ? `${Math.min(100, (c / d) * 100)}%` : "0";
+  };
+  show(!!loaded && !loaded.usb, "elapsed", "remaining", "progressBar");
+  show(!!loaded?.usb, "usbElapsed", "usbRemaining", "usbProgressBar");
 }
 
 // ---------- USB / folder panel ----------
@@ -303,18 +316,20 @@ async function keepAwake(on) {
   } catch { /* not supported: fine */ }
 }
 
-$("pauseBtn").addEventListener("click", async () => {
+async function togglePause() {
   if (!current) return;
   if (audio.paused) {
     if (audioCtx?.state === "suspended") await audioCtx.resume().catch(() => {});
     await audio.play().catch(() => {});
   } else audio.pause();
   render();
-});
-$("stopBtn").addEventListener("click", stop);
-$("restartBtn").addEventListener("click", () => {
+}
+function restart() {
   if (current) { audio.currentTime = 0; updateTime(); }
-});
+}
+for (const [id, fn] of [["pauseBtn", togglePause], ["usbPause", togglePause], ["stopBtn", stop], ["usbStop", stop], ["restartBtn", restart], ["usbRestart", restart]]) {
+  $(id).addEventListener("click", fn);
+}
 $("playNextBtn").addEventListener("click", () => { const n = nextTrack(); if (n) play(n.id); });
 $("volume").addEventListener("input", () => {
   applyVolume();

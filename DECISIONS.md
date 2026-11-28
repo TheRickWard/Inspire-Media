@@ -121,4 +121,5 @@ Each entry records what was decided, why, and the date.
 
 ## 2026-11-28 – Sound Desk: play straight from USB or a folder
 **Decision:** The player has a "USB / folder" panel on the left. "Choose folder" (Windows) or "Choose files" (iPad and Windows) lists the music there, in name order, with a Play button on each. These songs play straight from the USB stick or folder: they aren't copied to the device, aren't added to the running-order list, don't get marked played and don't change "Up next". The same one-song-at-a-time lock covers the panel and the list. The panel empties when the player is closed (browsers only allow access to the files you chose this time).
+A USB song shows in its own small player (progress, Pause, Stop, Back to start) inside the panel; the big controls stay for the list, which keeps priority on the page.
 **Why:** Rick asked (28 Nov) to play music from a USB drive or onboard folder without importing it into the list.

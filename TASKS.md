@@ -48,7 +48,7 @@
 
 ## Done
 
-- [x] 2026-11-28 – Sound Desk: USB / folder panel on the left plays music straight from a USB stick or folder without adding it to the list (still only one song at a time)
+- [x] 2026-11-28 – Sound Desk: USB / folder panel on the left plays music straight from a USB stick or folder without adding it to the list, with its own small player (still only one song at a time)
 - [x] 2026-11-28 – Music download names are now "003 - Competitor - Section - Music title" (title only if set); Sound Desk player shows competitor and section and still reads older zips
 - [x] 2026-11-28 – Sound Desk player (offline, installable web app at /player): loads the portal's music zip (or files from a folder/USB) in running order, big Play/Pause/Stop/Back to start, other songs locked while one is playing, volume slider, "Play next", late music placed by item number, music kept on the device so it works with no internet; link on the organiser Music tab; 9 player tests
 - [x] 2026-11-28 – Fixed: the home page showed "No competitions are published yet" to signed-out visitors on the live site (it asked for organisation names, which visitors can't read). Added `npm run db:live-grants` so local tests use live-style permissions
