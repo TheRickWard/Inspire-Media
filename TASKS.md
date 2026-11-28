@@ -11,7 +11,8 @@
 - [ ] Switch Square and PayPal to live keys
 
 ### Portal stage 2 – Entries, cart, payments and receipts
-- [ ] Refunds (done in Square/PayPal for now; show them in the portal later)
+- [x] Refunds in the portal: owners/admin refund from the receipt (back through Square/PayPal, or recorded if paid back another way), can scratch the entries; shown on receipts, Payments and Reports
+- [ ] Rick to run `20261128020000_refunds.sql` in the Supabase SQL Editor
 - [ ] Organiser chooses what competitor accounts are allowed to do
 - [ ] Filter competitions by date, location, age and genre (once there are several)
 

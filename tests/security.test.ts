@@ -478,3 +478,58 @@ test("critiques: organisers see them; competitors only their own, once released 
   assert.equal(bucket?.public, false);
   await server.from("entry_critiques").delete().eq("event_id", MAIN_EVENT);
 });
+
+test("refunds: only owners/admin may refund; never twice or more than paid; payer and organisers see them", async () => {
+  const parent = await signIn("parent@example.test");
+  const staff = await signIn("staff@inspire.test");
+  const owner = await signIn("admin@inspire.test");
+  const harbour = await signIn("organiser@harbourdance.test");
+  const server = createClient(URL, SECRET, { auth: { persistSession: false } });
+
+  const { data: order } = await parent
+    .from("orders")
+    .select("id, paid_amount_cents, order_items(id, fee_cents, entry_id)")
+    .eq("event_id", MAIN_EVENT)
+    .eq("status", "paid")
+    .limit(1)
+    .single();
+  const [first, second] = order!.order_items;
+
+  // Who may refund.
+  assert.equal((await owner.rpc("can_refund_event", { ev: MAIN_EVENT })).data, true);
+  assert.equal((await staff.rpc("can_refund_event", { ev: MAIN_EVENT })).data, false, "staff can't refund");
+  assert.equal((await parent.rpc("can_refund_event", { ev: MAIN_EVENT })).data, false);
+  assert.equal((await harbour.rpc("can_refund_event", { ev: MAIN_EVENT })).data, false);
+
+  // Nobody signed in can start a refund or write one directly; only the website's server.
+  const args = { p_order: order!.id, p_item_ids: [first.id], p_amount_cents: first.fee_cents, p_method: "manual", p_reason: "Injury", p_scratch: true, p_user: null };
+  assert.ok((await parent.rpc("start_refund", args)).error);
+  assert.ok((await owner.rpc("start_refund", args)).error);
+  assert.ok((await owner.from("refunds").insert({ order_id: order!.id, event_id: MAIN_EVENT, amount_cents: 1, method: "manual" })).error);
+
+  // A recorded (manual) refund is done straight away and scratches the entry.
+  assert.equal((await server.rpc("start_refund", args)).error, null);
+  const { data: scratched } = await staff.from("entries").select("status").eq("id", first.entry_id!).single();
+  assert.equal(scratched!.status, "scratched");
+
+  // Not the same entry twice, not a different provider, not more than is left.
+  assert.match((await server.rpc("start_refund", args)).error?.message ?? "", /already been refunded/);
+  assert.match((await server.rpc("start_refund", { ...args, p_item_ids: [], p_method: "paypal" })).error?.message ?? "", /not paid with paypal/);
+  const left = order!.paid_amount_cents! - first.fee_cents;
+  assert.match((await server.rpc("start_refund", { ...args, p_item_ids: [], p_amount_cents: left + 1 })).error?.message ?? "", /more than is left/);
+
+  // A Square refund waits until Square answers; a failed one doesn't count.
+  const { data: pending } = await server.rpc("start_refund", { ...args, p_item_ids: [second.id], p_amount_cents: second.fee_cents, p_method: "square", p_scratch: false });
+  assert.match((await server.rpc("start_refund", { ...args, p_item_ids: [], p_amount_cents: 1 })).error?.message ?? "", /still being processed/);
+  await server.rpc("finish_refund", { p_refund: pending as string, p_ok: false, p_provider_refund_id: "", p_error: "Card expired" });
+  const { data: retry } = await server.rpc("start_refund", { ...args, p_item_ids: [second.id], p_amount_cents: second.fee_cents, p_method: "square", p_scratch: false });
+  await server.rpc("finish_refund", { p_refund: retry as string, p_ok: true, p_provider_refund_id: "SQ-RF-1", p_error: "" });
+  const { data: kept } = await staff.from("entries").select("status").eq("id", second.entry_id!).single();
+  assert.equal(kept!.status, "entered", "not scratched when not asked");
+
+  // The payer and the organisers see the refunds; another organiser doesn't.
+  const statuses = async (c: SupabaseClient) => (await c.from("refunds").select("status").eq("order_id", order!.id).order("created_at")).data?.map((r) => r.status);
+  assert.deepEqual(await statuses(parent), ["refunded", "failed", "refunded"]);
+  assert.deepEqual(await statuses(staff), ["refunded", "failed", "refunded"]);
+  assert.deepEqual(await statuses(harbour), []);
+});

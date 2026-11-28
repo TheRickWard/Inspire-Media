@@ -317,6 +317,38 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"refunds": {
+                  Row: {
+                    "amount_cents": number,"created_at": string,"created_by": string | null,"error": string | null,"event_id": string,"finished_at": string | null,"id": string,"method": string,"order_id": string,"order_item_ids": (string)[],"provider_refund_id": string | null,"reason": string,"scratch_entries": boolean,"status": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount_cents": number,"created_at"?: string,"created_by"?: string | null,"error"?: string | null,"event_id": string,"finished_at"?: string | null,"id"?: string,"method": string,"order_id": string,"order_item_ids"?: (string)[],"provider_refund_id"?: string | null,"reason"?: string,"scratch_entries"?: boolean,"status"?: string
+                  }
+                  Update: {
+                    "amount_cents"?: number,"created_at"?: string,"created_by"?: string | null,"error"?: string | null,"event_id"?: string,"finished_at"?: string | null,"id"?: string,"method"?: string,"order_id"?: string,"order_item_ids"?: (string)[],"provider_refund_id"?: string | null,"reason"?: string,"scratch_entries"?: boolean,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "refunds_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "refunds_event_id_fkey"
+      columns: ["event_id"]
+isOneToOne: false
+      referencedRelation: "events"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "refunds_order_id_fkey"
+      columns: ["order_id"]
+isOneToOne: false
+      referencedRelation: "orders"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"sections": {
                   Row: {
                     "age_group": string,"code": string,"created_at": string,"entry_fee_cents": number,"event_id": string,"genre": string,"id": string,"max_age": number | null,"max_dancers": number | null,"min_age": number | null,"min_dancers": number,"name": string,"position": number,"session_id": string | null
@@ -364,6 +396,9 @@ isOneToOne: false
 "can_manage_event":
 { Args: { "ev": string }; Returns: boolean
                            },
+"can_refund_event":
+{ Args: { "ev": string }; Returns: boolean
+                           },
 "complete_checkout_group":
 { Args: { "p_group": string,"p_paid_cents": number,"p_provider": string,"p_receipt_url": string,"p_reference": string }; Returns: (string)[]
                            },
@@ -381,6 +416,9 @@ isOneToOne: false
                            },
 "entries_are_open":
 { Args: { "ev": string }; Returns: boolean
+                           },
+"finish_refund":
+{ Args: { "p_error": string,"p_ok": boolean,"p_provider_refund_id": string,"p_refund": string }; Returns: undefined
                            },
 "import_program":
 { Args: { "ev": string,"rows": Json }; Returns: number
@@ -420,6 +458,9 @@ isOneToOne: false
                            },
 "remove_from_cart":
 { Args: { "item": string }; Returns: undefined
+                           },
+"start_refund":
+{ Args: { "p_amount_cents": number,"p_item_ids": (string)[],"p_method": string,"p_order": string,"p_reason": string,"p_scratch": boolean,"p_user": string }; Returns: string
                            }
           }
           Enums: {

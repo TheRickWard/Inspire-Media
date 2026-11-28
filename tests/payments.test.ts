@@ -2,8 +2,8 @@
 // (no real accounts or money involved). Run with: npm test
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { startSquareCheckout, verifySquarePayment } from "../src/lib/payments/square.ts";
-import { capturePayPalPayment, startPayPalCheckout } from "../src/lib/payments/paypal.ts";
+import { refundSquarePayment, startSquareCheckout, verifySquarePayment } from "../src/lib/payments/square.ts";
+import { capturePayPalPayment, refundPayPalPayment, startPayPalCheckout } from "../src/lib/payments/paypal.ts";
 import { toCents, toDollars, type StartCheckout } from "../src/lib/payments/types.ts";
 
 type Call = { url: string; method: string; body: unknown; headers: Record<string, string> };
@@ -166,4 +166,46 @@ test("PayPal notifications: PayPal is asked to confirm the signature", async () 
   assert.equal(sent.transmission_sig, "SIG");
   const bad = fakeFetch({ "POST /v1/oauth2/token": token, "POST /v1/notifications/verify-webhook-signature": () => [200, { verification_status: "FAILURE" }] });
   assert.equal(await verifyPayPalWebhook(paypal, "WH-1", headers, { id: "E1" }, bad.fn), false);
+});
+
+test("Square: a refund goes back to the order's payment, in AUD, with our key", async () => {
+  const { fn, calls } = fakeFetch({
+    "GET /v2/orders/SQ-ORDER": () => [200, { order: { id: "SQ-ORDER", reference_id: ORDER, tenders: [{ id: "T1", payment_id: "PAY1" }] } }],
+    "POST /v2/refunds": () => [200, { refund: { id: "RF1", status: "PENDING" } }],
+  });
+  assert.deepEqual(await refundSquarePayment(square, "SQ-ORDER", 2500, "key-1", "Injured", fn), { ok: true, refundId: "RF1", pending: true });
+  const post = calls.find((c) => c.method === "POST")!;
+  assert.ok(post.url.startsWith("https://connect.squareupsandbox.com/"));
+  assert.deepEqual(post.body, { idempotency_key: "key-1", payment_id: "PAY1", amount_money: { amount: 2500, currency: "AUD" }, reason: "Injured" });
+});
+
+test("Square: a rejected refund is reported as failed", async () => {
+  const { fn } = fakeFetch({
+    "GET /v2/orders/SQ-ORDER": () => [200, { order: { id: "SQ-ORDER", tenders: [{ id: "T1", payment_id: "PAY1" }] } }],
+    "POST /v2/refunds": () => [200, { refund: { id: "RF1", status: "REJECTED" } }],
+  });
+  assert.equal((await refundSquarePayment(square, "SQ-ORDER", 2500, "key-1", "", fn)).ok, false);
+});
+
+test("PayPal: a refund goes back against the order's capture, in AUD, with our key", async () => {
+  const { fn, calls } = fakeFetch({
+    "POST /v1/oauth2/token": token,
+    "GET /v2/checkout/orders/PP-1": () => [200, capturedOrder],
+    "POST /v2/payments/captures/CAP1/refund": () => [201, { id: "PPR1", status: "COMPLETED" }],
+  });
+  assert.deepEqual(await refundPayPalPayment(paypal, "PP-1", 2500, "key-2", "Scratched", fn), { ok: true, refundId: "PPR1", pending: false });
+  const post = calls.find((c) => c.url.endsWith("/refund"))!;
+  assert.deepEqual(post.body, { amount: { currency_code: "AUD", value: "25.00" }, note_to_payer: "Scratched" });
+  assert.equal(post.headers["PayPal-Request-Id"], "refund-key-2");
+});
+
+test("PayPal: a refund PayPal refuses is reported with PayPal's reason", async () => {
+  const { fn } = fakeFetch({
+    "POST /v1/oauth2/token": token,
+    "GET /v2/checkout/orders/PP-1": () => [200, capturedOrder],
+    "POST /v2/payments/captures/CAP1/refund": () => [422, { name: "UNPROCESSABLE_ENTITY", details: [{ issue: "REFUND_AMOUNT_EXCEEDED", description: "The refund amount must be less than or equal to the capture amount" }] }],
+  });
+  const r = await refundPayPalPayment(paypal, "PP-1", 99999, "key-3", "", fn);
+  assert.equal(r.ok, false);
+  assert.match(!r.ok ? r.error : "", /less than or equal/);
 });

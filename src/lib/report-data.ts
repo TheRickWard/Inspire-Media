@@ -30,6 +30,9 @@ export async function loadReportData(supabase: Supabase, eventId: string) {
   ]);
 
   const paid = orders ?? [];
+  const { data: refundRows } = await supabase.from("refunds").select("order_id, amount_cents").eq("event_id", eventId).eq("status", "refunded");
+  const refundedBy = new Map<string, number>();
+  for (const r of refundRows ?? []) refundedBy.set(r.order_id, (refundedBy.get(r.order_id) ?? 0) + r.amount_cents);
   const contacts = await contactsFor([...(entries ?? []).map((e) => e.entered_by ?? ""), ...paid.map((o) => o.user_id)]);
   const paidFor = new Map<string, { receipt: string; fee: number }>();
   for (const o of paid) for (const i of o.order_items) if (i.entry_id) paidFor.set(i.entry_id, { receipt: o.receipt_number ?? "", fee: i.fee_cents });
@@ -71,6 +74,7 @@ export async function loadReportData(supabase: Supabase, eventId: string) {
       reference: o.payment_reference ?? "",
       entries: o.order_items.length,
       amountCents: o.paid_amount_cents ?? o.total_cents,
+      refundedCents: refundedBy.get(o.id) ?? 0,
     };
   });
 
@@ -123,8 +127,8 @@ export function reportCsv(report: ReportKey, data: ReportData): string {
   }
   if (report === "payments") {
     return toCsv(
-      ["Receipt", "Paid at", "Paid by", "Email", "Method", "Reference", "Entries", "Amount ($)"],
-      data.payments.map((p) => [p.receipt, p.paidAt ? new Date(p.paidAt).toLocaleString("en-AU", { timeZone: "Australia/Sydney" }) : "", p.name, p.email, p.method, p.reference, p.entries, money(p.amountCents)]),
+      ["Receipt", "Paid at", "Paid by", "Email", "Method", "Reference", "Entries", "Amount ($)", "Refunded ($)", "Net ($)"],
+      data.payments.map((p) => [p.receipt, p.paidAt ? new Date(p.paidAt).toLocaleString("en-AU", { timeZone: "Australia/Sydney" }) : "", p.name, p.email, p.method, p.reference, p.entries, money(p.amountCents), p.refundedCents ? money(p.refundedCents) : "", money(p.amountCents - p.refundedCents)]),
     );
   }
   return toCsv(

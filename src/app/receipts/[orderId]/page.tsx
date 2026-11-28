@@ -7,7 +7,10 @@ import { createSupabase } from "@/lib/supabase/server";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { formatDateRange, formatDateTime, formatMoney } from "@/lib/format";
 import { PrintButton } from "@/components/PrintButton";
-import { card, link, muted } from "@/components/ui";
+import { buttonSmall, card, h2, link, muted } from "@/components/ui";
+import { ActionForm } from "@/components/ActionForm";
+import { RefundForm } from "@/components/RefundForm";
+import { refundOrder, retryRefund } from "@/app/org/refund-actions";
 
 const providerName = { square: "Square", paypal: "PayPal" } as const;
 
@@ -19,7 +22,7 @@ async function Receipt({ params, searchParams }: { params: Promise<{ orderId: st
 
   const { data: order } = await supabase
     .from("orders")
-    .select("id, user_id, status, receipt_number, paid_at, total_cents, payment_provider, payment_reference, provider_receipt_url, profiles(full_name, email), events(name, starts_on, ends_on, venue_name), order_items(id, fee_cents, dancer_ids, studio_name, created_at, sections(code, name))")
+    .select("id, user_id, event_id, status, receipt_number, paid_at, total_cents, paid_amount_cents, payment_provider, payment_reference, provider_receipt_url, profiles(full_name, email), events(name, starts_on, ends_on, venue_name), order_items(id, fee_cents, dancer_ids, studio_name, created_at, sections(code, name))")
     .eq("id", orderId)
     .eq("status", "paid")
     .maybeSingle();
@@ -46,6 +49,17 @@ async function Receipt({ params, searchParams }: { params: Promise<{ orderId: st
         .eq("payment_reference", order.payment_reference)
         .neq("id", order.id)
     : { data: [] };
+  const [{ data: refundRows }, { data: canRefund }] = await Promise.all([
+    supabase.from("refunds").select("id, amount_cents, method, status, reason, order_item_ids, error, created_at, finished_at").eq("order_id", order.id).order("created_at"),
+    supabase.rpc("can_refund_event", { ev: order.event_id }),
+  ]);
+  const refunds = refundRows ?? [];
+  const live = refunds.filter((r) => r.status !== "failed");
+  const refundedCents = refunds.filter((r) => r.status === "refunded").reduce((n, r) => n + r.amount_cents, 0);
+  const remainingCents = (order.paid_amount_cents ?? order.total_cents) - live.reduce((n, r) => n + r.amount_cents, 0);
+  const refundedItems = new Set(live.flatMap((r) => r.order_item_ids));
+  const itemLabel = (i: (typeof items)[number]) =>
+    `Section ${i.sections?.code} – ${i.sections?.name}: ${i.studio_name ? i.studio_name : i.dancer_ids.map((id) => dancerName.get(id) ?? "Dancer").join(" & ")}`;
   const abn = process.env.RECEIPT_ABN?.trim();
   const business = process.env.RECEIPT_BUSINESS_NAME?.trim() || "Inspire Dance & Fitness";
 
@@ -131,6 +145,18 @@ async function Receipt({ params, searchParams }: { params: Promise<{ orderId: st
               <td className="py-2">Total paid (AUD)</td>
               <td className="py-2 text-right">{formatMoney(order.total_cents)}</td>
             </tr>
+            {refundedCents > 0 && (
+              <>
+                <tr className="text-red-700">
+                  <td className="py-1">Refunded</td>
+                  <td className="py-1 text-right">−{formatMoney(refundedCents)}</td>
+                </tr>
+                <tr className="font-semibold">
+                  <td className="py-1">Total after refunds</td>
+                  <td className="py-1 text-right">{formatMoney((order.paid_amount_cents ?? order.total_cents) - refundedCents)}</td>
+                </tr>
+              </>
+            )}
           </tfoot>
         </table>
 
@@ -143,7 +169,52 @@ async function Receipt({ params, searchParams }: { params: Promise<{ orderId: st
           )}
           <p>Item numbers are given when the organiser finalises the program.</p>
         </div>
+
+        {refunds.length > 0 && (
+          <div className="space-y-2">
+            <h2 className="text-base font-semibold">Refunds</h2>
+            <ul className="divide-y divide-slate-100 text-sm">
+              {refunds.map((r) => (
+                <li key={r.id} className="space-y-0.5 py-2">
+                  <p className="flex flex-wrap justify-between gap-2">
+                    <span className="font-medium">
+                      {formatDateTime(r.finished_at ?? r.created_at)} ·{" "}
+                      {r.method === "manual" ? "Refunded by the organiser (cash or bank transfer)" : `Refunded through ${providerName[r.method as keyof typeof providerName] ?? r.method}`}
+                    </span>
+                    <span className={r.status === "failed" ? "text-slate-400 line-through" : "font-medium text-red-700"}>−{formatMoney(r.amount_cents)}</span>
+                  </p>
+                  {r.order_item_ids.length > 0 && (
+                    <p className="text-slate-600">For: {items.filter((i) => r.order_item_ids.includes(i.id)).map(itemLabel).join("; ")}</p>
+                  )}
+                  {r.reason && <p className="text-slate-600">Reason: {r.reason}</p>}
+                  {r.status === "failed" && <p className="text-red-700 print:hidden">Not refunded: {r.error}</p>}
+                  {r.status === "pending" && (
+                    <div className="print:hidden">
+                      <p className="text-amber-700">Waiting for {providerName[r.method as keyof typeof providerName] ?? "the payment service"} to confirm.</p>
+                      {canRefund && (
+                        <ActionForm action={retryRefund.bind(null, order.id, r.id)} submitLabel="Try again" pendingLabel="Checking…" className="mt-1" buttonClassName={buttonSmall} />
+                      )}
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </article>
+
+      {canRefund && remainingCents > 0 && (
+        <section className={`${card} space-y-3 print:hidden`}>
+          <h2 className={h2}>Give a refund</h2>
+          <p className={muted}>Only the organisation&apos;s owners see this. The payer doesn&apos;t get an email from us; Square or PayPal let them know.</p>
+          <RefundForm
+            action={refundOrder.bind(null, order.id)}
+            items={items.map((i) => ({ id: i.id, label: itemLabel(i), feeCents: i.fee_cents, refunded: refundedItems.has(i.id) }))}
+            remainingCents={remainingCents}
+            providerName={order.payment_provider ? (providerName[order.payment_provider as keyof typeof providerName] ?? null) : null}
+          />
+        </section>
+      )}
     </div>
   );
 }
