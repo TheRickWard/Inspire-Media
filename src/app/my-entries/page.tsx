@@ -15,15 +15,20 @@ async function MyEntries() {
   const { data: entries } = await supabase
     .from("entries")
     .select(
-      "id, item_number, performer_name, studio_name, status, position, events(id, name, starts_on, ends_on, music_due_on, critiques_released_at), sections(code, name), entry_music(file_name, size_bytes, uploaded_at), entry_critiques(id, adjudicator, file_name)",
+      "id, item_number, performer_name, studio_name, status, position, events(id, name, starts_on, ends_on, music_due_on, critiques_released_at), sections(code, name, event_sessions(critiques_released_at)), entry_music(file_name, size_bytes, uploaded_at), entry_critiques(id, adjudicator, file_name)",
     )
     .eq("entered_by", user.id)
     .order("position");
 
-  const list = entries ?? [];
+  // A competitor only sees critiques once the organiser releases them (whole event or the entry's session).
+  // The security rules let organisers see every critique, so an organiser who also entered
+  // would otherwise hear theirs early. Hide unreleased ones here for everyone.
+  const list = (entries ?? []).map((e) => {
+    const released = !!(e.events?.critiques_released_at || e.sections?.event_sessions?.critiques_released_at);
+    return { ...e, entry_critiques: released ? e.entry_critiques : [] };
+  });
   const [links, critique] = await Promise.all([
     musicPlayLinks(list.filter((e) => e.entry_music).map((e) => e.id)),
-    // Only critiques the organiser has released come back (security rules).
     critiqueLinks(list.flatMap((e) => e.entry_critiques.map((c) => c.id))),
   ]);
   const today = todayInSydney();
