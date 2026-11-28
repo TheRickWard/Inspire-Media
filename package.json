@@ -12,7 +12,8 @@
     "db:start": "supabase start -x realtime,imgproxy,edge-runtime,logflare,vector,supavisor",
     "db:reset": "supabase db reset",
     "db:stop": "supabase stop",
-    "db:types": "supabase gen types typescript --local > src/lib/database.types.ts"
+    "db:types": "supabase gen types typescript --local > src/lib/database.types.ts",
+    "db:live-grants": "node scripts/live-grants.mjs | docker exec -i supabase_db_inspire-media psql -U postgres -q"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

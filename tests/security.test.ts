@@ -34,10 +34,11 @@ test("the public can see published events and their program, but not drafts", as
   assert.equal(count, 30);
   const { data: harbourEntries } = await db.from("entries").select("id").eq("event_id", HARBOUR_EVENT);
   assert.deepEqual(harbourEntries, []);
+  // Visitors either get no rows or no access at all (live Supabase doesn't grant these tables to visitors).
   const { data: orgs } = await db.from("organisations").select("id");
-  assert.deepEqual(orgs, []);
+  assert.deepEqual(orgs ?? [], []);
   const { data: profiles } = await db.from("profiles").select("id");
-  assert.deepEqual(profiles, []);
+  assert.deepEqual(profiles ?? [], []);
 });
 
 test("the public can't change anything", async () => {

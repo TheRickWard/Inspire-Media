@@ -8,7 +8,7 @@ async function PublishedEvents() {
   const supabase = await createPublicSupabase();
   const { data: events } = await supabase
     .from("events")
-    .select("id, name, venue_name, starts_on, ends_on, organisations(name)")
+    .select("id, name, venue_name, starts_on, ends_on")
     .eq("status", "published")
     .order("starts_on");
 
