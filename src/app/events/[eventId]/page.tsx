@@ -89,7 +89,6 @@ async function PublicEvent({ params }: { params: Promise<{ eventId: string }> })
         </section>
       )}
 
-      <p className={muted}>Critique downloads: coming soon.</p>
     </div>
   );
 }

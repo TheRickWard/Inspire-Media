@@ -58,9 +58,9 @@ async function Dashboard() {
 
       <section className={card}>
         <h2 className={h2}>My entries and receipts</h2>
-        <p className="mt-1 text-sm text-slate-600">Upload music for each paid entry, and print receipts. Downloading critiques: coming soon.</p>
+        <p className="mt-1 text-sm text-slate-600">Upload music for each paid entry, listen to and download adjudicators&apos; critiques, and print receipts.</p>
         <div className="mt-2 flex flex-wrap gap-4 text-sm font-medium">
-          <Link href="/my-entries" className={link}>My entries and music →</Link>
+          <Link href="/my-entries" className={link}>My entries, music and critiques →</Link>
           <Link href="/receipts" className={link}>My receipts →</Link>
         </div>
       </section>

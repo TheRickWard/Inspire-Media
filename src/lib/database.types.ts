@@ -75,6 +75,38 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"entry_critiques": {
+                  Row: {
+                    "adjudicator": string,"content_type": string,"entry_id": string,"event_id": string,"file_name": string,"id": string,"size_bytes": number,"storage_path": string,"uploaded_at": string,"uploaded_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "adjudicator"?: string,"content_type": string,"entry_id": string,"event_id": string,"file_name": string,"id"?: string,"size_bytes": number,"storage_path": string,"uploaded_at"?: string,"uploaded_by"?: string | null
+                  }
+                  Update: {
+                    "adjudicator"?: string,"content_type"?: string,"entry_id"?: string,"event_id"?: string,"file_name"?: string,"id"?: string,"size_bytes"?: number,"storage_path"?: string,"uploaded_at"?: string,"uploaded_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "entry_critiques_entry_id_fkey"
+      columns: ["entry_id"]
+isOneToOne: false
+      referencedRelation: "entries"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "entry_critiques_event_id_fkey"
+      columns: ["event_id"]
+isOneToOne: false
+      referencedRelation: "events"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "entry_critiques_uploaded_by_fkey"
+      columns: ["uploaded_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"entry_dancers": {
                   Row: {
                     "dancer_id": string,"entry_id": string
@@ -135,14 +167,14 @@ isOneToOne: false
                   ]
                 },"event_sessions": {
                   Row: {
-                    "created_at": string,"event_id": string,"id": string,"name": string,"position": number,"session_date": string | null,"starts_at": string | null
+                    "created_at": string,"critiques_released_at": string | null,"event_id": string,"id": string,"name": string,"position": number,"session_date": string | null,"starts_at": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"event_id": string,"id"?: string,"name": string,"position"?: number,"session_date"?: string | null,"starts_at"?: string | null
+                    "created_at"?: string,"critiques_released_at"?: string | null,"event_id": string,"id"?: string,"name": string,"position"?: number,"session_date"?: string | null,"starts_at"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"event_id"?: string,"id"?: string,"name"?: string,"position"?: number,"session_date"?: string | null,"starts_at"?: string | null
+                    "created_at"?: string,"critiques_released_at"?: string | null,"event_id"?: string,"id"?: string,"name"?: string,"position"?: number,"session_date"?: string | null,"starts_at"?: string | null
                   }
                   Relationships: [
                     {
@@ -155,14 +187,14 @@ isOneToOne: false
                   ]
                 },"events": {
                   Row: {
-                    "age_as_at": string | null,"contact_email": string,"contact_phone": string,"created_at": string,"description": string,"ends_on": string,"entries_close_on": string | null,"entries_open_on": string | null,"entries_override": string,"id": string,"music_due_on": string | null,"name": string,"organisation_id": string,"starts_on": string,"status": Database["public"]['Enums']["event_status"],"venue_address": string,"venue_name": string
+                    "age_as_at": string | null,"contact_email": string,"contact_phone": string,"created_at": string,"critiques_released_at": string | null,"description": string,"ends_on": string,"entries_close_on": string | null,"entries_open_on": string | null,"entries_override": string,"id": string,"music_due_on": string | null,"name": string,"organisation_id": string,"starts_on": string,"status": Database["public"]['Enums']["event_status"],"venue_address": string,"venue_name": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "age_as_at"?: string | null,"contact_email"?: string,"contact_phone"?: string,"created_at"?: string,"description"?: string,"ends_on": string,"entries_close_on"?: string | null,"entries_open_on"?: string | null,"entries_override"?: string,"id"?: string,"music_due_on"?: string | null,"name": string,"organisation_id": string,"starts_on": string,"status"?: Database["public"]['Enums']["event_status"],"venue_address"?: string,"venue_name"?: string
+                    "age_as_at"?: string | null,"contact_email"?: string,"contact_phone"?: string,"created_at"?: string,"critiques_released_at"?: string | null,"description"?: string,"ends_on": string,"entries_close_on"?: string | null,"entries_open_on"?: string | null,"entries_override"?: string,"id"?: string,"music_due_on"?: string | null,"name": string,"organisation_id": string,"starts_on": string,"status"?: Database["public"]['Enums']["event_status"],"venue_address"?: string,"venue_name"?: string
                   }
                   Update: {
-                    "age_as_at"?: string | null,"contact_email"?: string,"contact_phone"?: string,"created_at"?: string,"description"?: string,"ends_on"?: string,"entries_close_on"?: string | null,"entries_open_on"?: string | null,"entries_override"?: string,"id"?: string,"music_due_on"?: string | null,"name"?: string,"organisation_id"?: string,"starts_on"?: string,"status"?: Database["public"]['Enums']["event_status"],"venue_address"?: string,"venue_name"?: string
+                    "age_as_at"?: string | null,"contact_email"?: string,"contact_phone"?: string,"created_at"?: string,"critiques_released_at"?: string | null,"description"?: string,"ends_on"?: string,"entries_close_on"?: string | null,"entries_open_on"?: string | null,"entries_override"?: string,"id"?: string,"music_due_on"?: string | null,"name"?: string,"organisation_id"?: string,"starts_on"?: string,"status"?: Database["public"]['Enums']["event_status"],"venue_address"?: string,"venue_name"?: string
                   }
                   Relationships: [
                     {
@@ -337,6 +369,9 @@ isOneToOne: false
                            },
 "complete_order":
 { Args: { "p_order": string,"p_paid_cents": number,"p_provider": string,"p_receipt_url": string,"p_reference": string }; Returns: string
+                           },
+"critique_released":
+{ Args: { "entry": string }; Returns: boolean
                            },
 "dancer_entered_in_my_event":
 { Args: { "dancer": string }; Returns: boolean
