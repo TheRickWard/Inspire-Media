@@ -198,6 +198,11 @@ main { flex: 1; padding: 0 16px; }
 .tag { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 700; vertical-align: middle; }
 .tag-late { background: #fff1d6; color: #8a4b00; }
 .tag-played { background: var(--blue); color: #fff; }
+.tag-scratched { background: #6b6670; color: #fff; text-decoration: none; }
+.row.scratched { background: #efeef1; box-shadow: none; }
+.row.scratched .item, .row.scratched .who, .row.scratched .len { opacity: 0.55; }
+.row.scratched .who strong { color: var(--muted); text-decoration: line-through; }
+.tool.on { background: #6b6670; border-color: #6b6670; color: #fff; padding: 0 8px; }
 .tools { display: flex; gap: 4px; }
 .tool {
   min-width: 40px;
@@ -207,6 +212,7 @@ main { flex: 1; padding: 0 16px; }
   background: #fff;
   color: var(--ink);
   font-size: 0.9rem;
+  padding: 0 8px;
 }
 .tool.confirm { background: var(--red); border-color: var(--red); color: #fff; padding: 0 10px; }
 

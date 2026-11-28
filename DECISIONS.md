@@ -127,3 +127,7 @@ A USB song shows in its own small player (progress, Pause, Stop, Back to start) 
 ## 2026-11-28 – Sound Desk: fade out, search, song lengths, played in blue
 **Decision:** "Fade out" lowers the music to silence over 3 seconds, then stops (Stop or Pause during a fade cancel it and bring the volume back). A search box filters the list by competitor, section, music title or item number. Each song's length is read on the device in the background and shown in the list (and the USB panel). There is one "Time limit" setting in the player (e.g. 3:00, blank = off); songs longer than it show ⚠ in red. Played songs are highlighted in Inspire blue (#0096d6).
 **Why:** Rick picked suggestions 1–3 (28 Nov) and asked for played songs in blue from his colour theme. The portal doesn't store per-section time limits yet, so the player has one limit for now.
+
+## 2026-11-28 – Sound Desk: scratching at the venue
+**Decision:** Each song in the player has a Scratch button. A scratched song is greyed out and crossed through, keeps its place in the running order, can't be played (its Play button is locked) and is skipped by "Play next". Unscratch puts it back. Scratches are kept on the device. Entries already scratched in the portal before the music is downloaded aren't in the zip at all.
+**Why:** Rick asked to grey out scratched items (28 Nov). Scratches mostly happen on the day, when the player is offline, so they are made in the player rather than read from the portal.

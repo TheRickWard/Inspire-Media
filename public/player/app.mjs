@@ -73,7 +73,8 @@ let durations = {}; // song id -> length in seconds (saved on the device for lis
 // The next song not yet played, after the one playing (or the one played last).
 function nextTrack() {
   const from = tracks.findIndex((t) => t.id === (current ?? lastFinished)) + 1;
-  return tracks.slice(from).find((t) => !t.played && t.id !== current) ?? tracks.find((t) => !t.played && t.id !== current) ?? null;
+  const ready = (t) => !t.played && !t.scratched && t.id !== current;
+  return tracks.slice(from).find(ready) ?? tracks.find(ready) ?? null;
 }
 const describe = (t) => [t.item ? `Item ${t.item}` : "", t.performer, t.detail ?? ""].filter(Boolean).join(" – ");
 
@@ -93,7 +94,7 @@ function render() {
   const next = nextTrack();
 
   $("listName").textContent = tracks.length
-    ? `${listName || "Music"} · ${tracks.length} ${tracks.length === 1 ? "song" : "songs"} · ${tracks.filter((t) => t.played).length} played`
+    ? `${listName || "Music"} · ${tracks.length} ${tracks.length === 1 ? "song" : "songs"} · ${tracks.filter((t) => t.played).length} played${tracks.some((t) => t.scratched) ? ` · ${tracks.filter((t) => t.scratched).length} scratched` : ""}`
     : "No music loaded";
   $("empty").hidden = tracks.length > 0;
   $("lateBtn").disabled = tracks.length === 0;
@@ -136,9 +137,9 @@ function render() {
   list.replaceChildren(
     ...shown.map(([t, i]) => {
       const li = document.createElement("li");
-      li.className = `row${t.id === current ? " current" : ""}${!locked && next && t.id === next.id ? " next" : ""}${t.played ? " played" : ""}`;
+      li.className = `row${t.id === current ? " current" : ""}${!locked && next && t.id === next.id ? " next" : ""}${t.played ? " played" : ""}${t.scratched ? " scratched" : ""}`;
       const playBtn = button(t.id === current ? (playing ? "On air" : "Paused") : "Play", "play", () => play(t.id));
-      playBtn.disabled = locked;
+      playBtn.disabled = locked || t.scratched; // a scratched item can't be played by accident
       playBtn.setAttribute("aria-label", `Play ${describe(t)}`);
       const item = document.createElement("span");
       item.className = "item";
@@ -149,6 +150,7 @@ function render() {
       strong.textContent = t.performer;
       if (t.late) strong.append(tag("Late", "tag-late"));
       if (t.played) strong.append(tag("Played", "tag-played"));
+      if (t.scratched) strong.append(tag("Scratched", "tag-scratched"));
       const len = lengthTag(t);
       const small = document.createElement("small");
       small.textContent = t.detail || t.fileName;
@@ -167,7 +169,10 @@ function render() {
       const remove = button(confirmRemove === t.id ? "Remove?" : "✕", `tool${confirmRemove === t.id ? " confirm" : ""}`, () => removeTrack(t.id));
       remove.disabled = t.id === current;
       remove.setAttribute("aria-label", `Remove ${describe(t)}`);
-      tools.append(up, down, mark, remove);
+      const scratch = button(t.scratched ? "Unscratch" : "Scratch", `tool${t.scratched ? " on" : ""}`, () => toggleScratched(t.id));
+      scratch.disabled = t.id === current;
+      scratch.setAttribute("aria-label", t.scratched ? `Put ${describe(t)} back in` : `Scratch ${describe(t)}`);
+      tools.append(up, down, mark, scratch, remove);
       li.append(playBtn, item, who, len, tools);
       return li;
     }),
@@ -427,6 +432,14 @@ async function togglePlayed(id) {
   const t = tracks.find((x) => x.id === id);
   if (!t) return;
   t.played = !t.played;
+  render();
+  await tx(["tracks"], "readwrite", (x) => x.objectStore("tracks").put(t)).catch(() => {});
+}
+// Scratched: greyed out, can't be played and skipped by "Play next", but kept in its place.
+async function toggleScratched(id) {
+  const t = tracks.find((x) => x.id === id);
+  if (!t || t.id === current) return;
+  t.scratched = !t.scratched;
   render();
   await tx(["tracks"], "readwrite", (x) => x.objectStore("tracks").put(t)).catch(() => {});
 }

@@ -39,7 +39,6 @@
 - [ ] Ask competitors for a music title when they upload music (needs a database change)
 - [ ] Sound Desk: section headings in the list
 - [ ] Sound Desk: played log (what played when) saved as a spreadsheet
-- [ ] Sound Desk: scratched items greyed out (load the program from the portal)
 - [ ] Per-section time limits in the portal, carried into the player (player has one time limit for now)
 - [ ] Organisers sign up themselves and pay Inspire a fee (how they pay is still to be decided)
 - [ ] Move a whole section earlier or later in the running order
@@ -50,6 +49,7 @@
 
 ## Done
 
+- [x] 2026-11-28 – Sound Desk: Scratch button on each song: greyed out and crossed through, can't be played, skipped by "Play next", Unscratch puts it back
 - [x] 2026-11-28 – Sound Desk: Fade out button (3 seconds, big player and USB player), search box for the list, song lengths with a time-limit warning (⚠), played songs highlighted in Inspire blue
 - [x] 2026-11-28 – Sound Desk: USB / folder panel on the left plays music straight from a USB stick or folder without adding it to the list, with its own small player (still only one song at a time)
 - [x] 2026-11-28 – Music download names are now "003 - Competitor - Section - Music title" (title only if set); Sound Desk player shows competitor and section and still reads older zips
