@@ -33,6 +33,31 @@
 
   <div id="notice" class="notice" role="status" hidden></div>
 
+  <div class="layout">
+  <aside class="usb" aria-label="Play from USB or folder">
+    <h2>USB / folder</h2>
+    <p class="muted small">Play music straight from a USB stick or folder without adding it to the list.</p>
+    <div class="usb-actions">
+      <button type="button" id="usbFolderBtn" class="btn">Choose folder</button>
+      <button type="button" id="usbFilesBtn" class="btn btn-quiet">Choose files</button>
+    </div>
+    <input type="file" id="usbFolderInput" webkitdirectory multiple hidden>
+    <input type="file" id="usbFilesInput" accept=".mp3,.m4a,.wav,.aac,audio/*" multiple hidden>
+    <p class="usb-folder"><span id="usbFolder">Nothing chosen yet</span> <button type="button" id="usbClear" class="link-btn" hidden>Clear</button></p>
+    <div id="usbNow" class="usb-now" hidden>
+      <p class="label" id="usbNowLabel">Now playing</p>
+      <p class="usb-now-title" id="usbNowTitle"></p>
+      <div class="progress progress-small" aria-hidden="true"><div id="usbProgressBar"></div></div>
+      <p class="times times-small"><span id="usbElapsed">0:00</span><span id="usbRemaining"></span></p>
+      <div class="usb-controls">
+        <button type="button" id="usbPause" class="mini">Pause</button>
+        <button type="button" id="usbStop" class="mini mini-stop">Stop</button>
+        <button type="button" id="usbRestart" class="mini mini-quiet" aria-label="Back to start">⏮ Start</button>
+      </div>
+    </div>
+    <ol id="usbList" class="usb-list"></ol>
+  </aside>
+  <div class="content">
   <section class="deck" aria-label="Now playing">
     <div class="now">
       <p class="label" id="nowLabel">Ready</p>
@@ -70,6 +95,8 @@
     </div>
     <ol id="list" class="list" aria-label="Running order"></ol>
   </main>
+  </div>
+  </div>
 
   <footer class="foot muted">
     <span id="storage"></span>
