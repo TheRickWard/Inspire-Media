@@ -51,7 +51,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en-AU" className="h-full antialiased">
       <body className="flex min-h-full flex-col">
-        <header className="bg-white text-brand-ink shadow-sm">
+        <header className="bg-white text-brand-ink shadow-sm print:hidden">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
             <Link href="/" className="shrink-0" aria-label="Inspire home">
               <Image src="/inspire-logo.png" alt="Inspire Dance & Fitness" width={480} height={352} priority className="h-14 w-auto" />
@@ -62,8 +62,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           </div>
           <div className="brand-rainbow h-1" />
         </header>
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
-        <footer className="border-t border-slate-200 py-6 text-center text-xs text-slate-500">
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 print:max-w-none print:p-0">{children}</main>
+        <footer className="border-t border-slate-200 py-6 text-center text-xs text-slate-500 print:hidden">
           Inspire Media competition portal ·{" "}
           <Link href="/privacy" className="underline-offset-2 hover:underline">Privacy and terms</Link>
         </footer>

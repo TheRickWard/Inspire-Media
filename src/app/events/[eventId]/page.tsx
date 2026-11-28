@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { createPublicSupabase } from "@/lib/supabase/server";
 import { formatDate, formatDateRange, todayInSydney } from "@/lib/format";
 import { entriesStatus } from "@/lib/entries";
-import { button, card, h1, h2, muted } from "@/components/ui";
+import { button, card, h1, h2, link, muted } from "@/components/ui";
 
 async function PublicEvent({ params }: { params: Promise<{ eventId: string }> }) {
   const { eventId } = await params;
@@ -60,7 +60,10 @@ async function PublicEvent({ params }: { params: Promise<{ eventId: string }> })
       </section>
 
       <section className="space-y-4">
-        <h2 className={h2}>Program overview</h2>
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className={h2}>Program overview</h2>
+          {groups.length > 0 && <Link href={`/events/${event.id}/program`} className={`${link} text-sm font-medium`}>Printable program</Link>}
+        </div>
         {groups.length === 0 && <p className={muted}>The program hasn&apos;t been published yet.</p>}
         {groups.map((g) => (
           <div key={g.key} className={card}>

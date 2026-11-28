@@ -51,6 +51,9 @@ async function EventDetails({ params }: { params: Promise<{ orgId: string; event
           <a href={`/org/${orgId}/events/${eventId}/export`} className={buttonSecondary}>
             Download program CSV (for playback and critiques)
           </a>
+          <Link href={`/events/${eventId}/program`} className={buttonSecondary}>
+            Printable program
+          </Link>
         </div>
       </section>
 

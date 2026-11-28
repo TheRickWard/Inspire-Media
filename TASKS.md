@@ -25,7 +25,8 @@
 - [x] Upload a missing critique directly to a competitor ("Add critique" on any entry)
 - [x] Release button: whole competition or one session at a time; competitors play/download under My entries
 - [ ] Rick to run `20261128010000_voice_critiques.sql` in the Supabase SQL Editor
-- [ ] Downloadable reports and a printable published program
+- [x] Downloadable reports (Reports tab: entries, studios, payments as CSV; summary by section and studio)
+- [x] Printable program (by session and section; public once published, organisers can print drafts)
 
 ### Venue tools
 - [ ] Music playback (sound desk), offline

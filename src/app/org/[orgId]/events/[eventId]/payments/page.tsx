@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { loadManagedEvent } from "@/lib/access";
-import { createAdminSupabase } from "@/lib/supabase/admin";
+import { contactsFor } from "@/lib/contacts";
 import { EventNav } from "@/components/EventNav";
 import { formatDateTime, formatMoney } from "@/lib/format";
 import { buttonSmall, card, h2, link, muted } from "@/components/ui";
@@ -9,15 +9,6 @@ import { ActionForm } from "@/components/ActionForm";
 import { checkCartPayment } from "@/app/org/payment-actions";
 
 const providerName: Record<string, string> = { square: "Square", paypal: "PayPal" };
-
-/** Names and emails of the account holders, who are the contacts for their entries. */
-async function contactsFor(userIds: string[]) {
-  const contacts = new Map<string, { name: string; email: string }>();
-  if (userIds.length === 0 || !process.env.SUPABASE_SECRET_KEY?.trim()) return contacts;
-  const { data } = await createAdminSupabase().from("profiles").select("id, full_name, email").in("id", userIds);
-  for (const p of data ?? []) contacts.set(p.id, { name: p.full_name, email: p.email });
-  return contacts;
-}
 
 function Contact({ c }: { c?: { name: string; email: string } }) {
   if (!c) return <span className="text-slate-400">Unknown</span>;
